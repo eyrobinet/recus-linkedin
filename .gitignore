@@ -1,0 +1,17 @@
+# Données réelles : jamais dans le dépôt public.
+exemples/
+tests/
+**/reference.json
+.donnees-sensibles.txt
+
+# Fichiers produits ou téléchargés.
+*.pdf
+*.xlsx
+*.xls
+*.csv
+*.zip
+*.json
+node_modules/
+
+# Ancien mode d'emploi local (remplacé par README.md).
+Mode d'emploi.md

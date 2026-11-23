@@ -1,0 +1,2375 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Politique de sécurité : les reçus ne sont échangés qu'avec Google Drive (lecture seule) et traités dans ce navigateur.
+     - Bibliothèques : quatre scripts de cdnjs, vérifiés par leur empreinte (integrity).
+     - Google : connexion (accounts.google.com), Google Picker (apis.google.com, docs.google.com), API Drive
+       (www.googleapis.com, seule adresse autorisée pour les requêtes : connect-src). Aucune autre destination. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://accounts.google.com https://apis.google.com https://www.gstatic.com blob:; worker-src blob: https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://accounts.google.com https://www.gstatic.com; img-src data: blob: https://*.googleusercontent.com https://ssl.gstatic.com https://www.gstatic.com https://drive-thirdparty.googleusercontent.com; font-src data: https://fonts.gstatic.com; connect-src https://www.googleapis.com https://accounts.google.com; frame-src https://accounts.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com; form-action 'none'; base-uri 'none'">
+<script>
+/* CONFIGURATION de la connexion Google Drive (lecture seule). Ces valeurs ne sont pas des secrets : elles sont publiques
+   par nature et ne fonctionnent que depuis l'adresse autorisée dans Google Cloud (voir le mode d'emploi). */
+window.RECUS_CONFIG = {
+  googleClientId: '', // identifiant client OAuth « Application Web » (….apps.googleusercontent.com)
+  pickerApiKey: '', // clé API restreinte à l'API Google Picker et à l'adresse de la page
+  pageUrl: 'https://eyrobinet.github.io/recus-linkedin/',
+};
+</script>
+<title>Reçus LinkedIn Ads</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" integrity="sha384-/1qUCSGwTur9vjf/z9lmu/eCUYbpOTgSjmpbMQZ1/CtX2v/WcAIKqRv+U1DUCG6e" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/4.2.1/jspdf.umd.min.js" integrity="sha384-qovJwSBbRDPP5cEjCp8S0UP66wrvnjaa60XMOGzTNanrThcrGfXfnZkvgY8N1KT3" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" integrity="sha384-vtjasyidUo0kW94K5MXDXntzOJpQgBKXmE7e2Ga4LG0skTTLeBi97eFAXsqewJjw" crossorigin="anonymous"></script>
+<style>
+/* Couleurs reprises de Clario (neutres chauds en clair, anthracite en sombre, accent « iris »). */
+:root {
+  --bg: #f7f7f5; --surface: #ffffff; --subtle: #f7f7f6; --muted: #f0f0ee; --line: #ebebe8; --line-strong: #dddcd8;
+  --fg: #1b1b1f; --fg-muted: #63636b; --fg-subtle: #9a9aa1;
+  --accent: #5b5bd6; --accent-hover: #4d4dc6; --accent-soft: rgb(91 91 214 / 0.09); --accent-text: #4b4bc2; --accent-fg: #fff;
+  --success: #17834a; --success-soft: rgb(23 131 74 / 0.09);
+  --warning: #b26205; --warning-soft: rgb(217 128 6 / 0.11);
+  --danger: #c93636; --danger-soft: rgb(201 54 54 / 0.08);
+  --shadow-xs: 0 1px 2px rgb(16 16 20 / 0.04); --shadow-pop: 0 10px 30px -10px rgb(16 16 20 / 0.18), 0 2px 6px -2px rgb(16 16 20 / 0.06);
+  --grid: #efefec;
+  /* Palette catégorielle validée (daltonisme, contraste) — même ordre que les graphiques de Clario. */
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948; --s-other: #9a9aa1;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: #17171a; --surface: #1b1b1f; --subtle: #1f1f23; --muted: #26262b; --line: #29292f; --line-strong: #35353c;
+  --fg: #ececef; --fg-muted: #a2a2ab; --fg-subtle: #6c6c75;
+  --accent: #7272e6; --accent-hover: #8383ee; --accent-soft: rgb(114 114 230 / 0.15); --accent-text: #a0a0f5;
+  --success: #4fbf80; --success-soft: rgb(79 191 128 / 0.12);
+  --warning: #e3a046; --warning-soft: rgb(227 160 70 / 0.13);
+  --danger: #ec6f6f; --danger-soft: rgb(236 111 111 / 0.12);
+  --shadow-xs: 0 1px 2px rgb(0 0 0 / 0.3); --shadow-pop: 0 16px 40px -12px rgb(0 0 0 / 0.6), 0 2px 8px -2px rgb(0 0 0 / 0.4);
+  --grid: #26262b;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #0ca30c; --s7: #9085e9; --s8: #e66767; --s-other: #6c6c75;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font: 13.5px/1.5 Inter, "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif; -webkit-font-smoothing: antialiased; }
+.num, td.n, th.n { font-variant-numeric: tabular-nums; }
+header.top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 12px; padding: 10px 24px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.logo { width: 26px; height: 26px; border-radius: 7px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+header h1 { font-size: 14.5px; margin: 0; font-weight: 600; letter-spacing: -0.01em; }
+header .sub { color: var(--fg-muted); font-size: 12px; }
+header .spacer { flex: 1; }
+main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 64px; display: grid; gap: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-xs); }
+.card > .hd { display: flex; align-items: center; gap: 10px; padding: 14px 18px 0; flex-wrap: wrap; }
+.card > .hd h2 { font-size: 14px; margin: 0; font-weight: 600; }
+.card > .hd .hint { color: var(--fg-muted); font-size: 12.5px; }
+.card > .bd { padding: 14px 18px 18px; }
+.step { width: 20px; height: 20px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-text); font-size: 11.5px; font-weight: 600; display: grid; place-items: center; }
+button, .btn { font: inherit; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); cursor: pointer; white-space: nowrap; }
+button:hover, .btn:hover { background: var(--subtle); }
+button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+button.primary:hover { background: var(--accent-hover); }
+button.ghost { border-color: transparent; background: transparent; color: var(--fg-muted); }
+button.ghost:hover { background: var(--muted); color: var(--fg); }
+button:disabled { opacity: .5; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input[type=text], input[type=month], select { font: inherit; font-size: 12.5px; height: 30px; padding: 0 9px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); }
+input[type=text]::placeholder { color: var(--fg-subtle); }
+.seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--muted); gap: 2px; }
+.seg button { height: 26px; border: 0; background: transparent; color: var(--fg-muted); padding: 0 10px; border-radius: 7px; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--fg); box-shadow: var(--shadow-xs); }
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.muted { color: var(--fg-muted); }
+.small { font-size: 12px; }
+.drop { border: 1.5px dashed var(--line-strong); border-radius: 12px; padding: 26px; text-align: center; background: var(--subtle); transition: background .15s, border-color .15s; }
+.drop.over { border-color: var(--accent); background: var(--accent-soft); }
+.drop strong { display: block; font-size: 14px; margin-bottom: 4px; }
+.drop .row { justify-content: center; margin-top: 12px; }
+.progress { height: 4px; border-radius: 4px; background: var(--muted); overflow: hidden; margin-top: 12px; }
+.progress > div { height: 100%; background: var(--accent); width: 0; transition: width .1s; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; }
+.kpi { border: 1px solid var(--line); border-radius: 10px; padding: 11px 13px; background: var(--surface); }
+.kpi .l { font-size: 12px; color: var(--fg-muted); display: flex; align-items: center; gap: 6px; }
+.kpi .v { font-size: 20px; font-weight: 600; letter-spacing: -0.02em; margin-top: 2px; }
+.kpi .s { font-size: 11.5px; color: var(--fg-subtle); }
+.kpi.warn { border-color: color-mix(in srgb, var(--warning) 35%, var(--line)); background: var(--warning-soft); }
+.kpi.warn .v { color: var(--warning); }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { text-align: left; font-weight: 500; color: var(--fg-muted); font-size: 11.5px; padding: 7px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+tr:last-child td { border-bottom: 0; }
+td.n, th.n { text-align: right; white-space: nowrap; }
+tfoot td { font-weight: 600; border-top: 1px solid var(--line-strong); }
+.tbl { border: 1px solid var(--line); border-radius: 10px; overflow: auto; }
+.badge { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11.5px; font-weight: 500; background: var(--muted); color: var(--fg-muted); white-space: nowrap; }
+.badge.ok { background: var(--success-soft); color: var(--success); }
+.badge.warn { background: var(--warning-soft); color: var(--warning); }
+.badge.err { background: var(--danger-soft); color: var(--danger); }
+.badge.acc { background: var(--accent-soft); color: var(--accent-text); }
+.notice { display: flex; gap: 10px; padding: 10px 12px; border-radius: 10px; font-size: 12.5px; align-items: flex-start; }
+.notice.warn { background: var(--warning-soft); color: var(--fg); border: 1px solid color-mix(in srgb, var(--warning) 30%, transparent); }
+.notice.info { background: var(--accent-soft); border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); }
+.notice .ic { font-weight: 700; color: var(--warning); }
+.notice.info .ic { color: var(--accent-text); }
+a.file { color: var(--accent-text); text-decoration: none; cursor: pointer; }
+a.file:hover { text-decoration: underline; }
+details.client { border: 1px solid var(--line); border-radius: 10px; margin-top: 8px; background: var(--surface); }
+details.client > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 9px 12px; cursor: pointer; }
+details.client > summary::-webkit-details-marker { display: none; }
+details.client > summary::before { content: "›"; color: var(--fg-subtle); width: 10px; transition: transform .15s; display: inline-block; }
+details.client[open] > summary::before { transform: rotate(90deg); }
+details.client .tbl { border: 0; border-top: 1px solid var(--line); border-radius: 0 0 10px 10px; }
+.sw { width: 10px; height: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--fg-muted); margin: 2px 0 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart text { font-size: 11px; fill: var(--fg-muted); font-family: inherit; }
+.chart .grid { stroke: var(--grid); stroke-width: 1; }
+.chart .axis { stroke: var(--line-strong); stroke-width: 1; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); border-radius: 10px; padding: 8px 10px; font-size: 12px; min-width: 190px; z-index: 5; }
+.tip .t { font-weight: 600; margin-bottom: 4px; }
+.tip .r { display: flex; align-items: center; gap: 7px; padding: 1px 0; }
+.tip .r .v { margin-left: auto; padding-left: 12px; font-variant-numeric: tabular-nums; }
+.tip .r.tot { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 4px; font-weight: 600; }
+.empty { padding: 28px; text-align: center; color: var(--fg-muted); }
+.acc-unknown td { background: var(--warning-soft); }
+.split { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.client-input { width: 100%; min-width: 180px; }
+.hidden { display: none !important; }
+.toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 8px 14px; border-radius: 9px; font-size: 12.5px; box-shadow: var(--shadow-pop); z-index: 50; }
+details.help summary { cursor: pointer; color: var(--accent-text); font-size: 12.5px; }
+details.help ol { margin: 8px 0 0; padding-left: 20px; color: var(--fg-muted); }
+.reason { color: var(--fg-muted); font-size: 12px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--line-strong); border-radius: 8px; cursor: pointer; background: var(--surface); font-size: 12.5px; user-select: none; }
+.chip:has(input:checked) { border-color: color-mix(in srgb, var(--accent) 45%, var(--line-strong)); background: var(--accent-soft); }
+.chip input { accent-color: var(--accent); margin: 0; }
+input[type=date] { font: inherit; font-size: 12.5px; height: 30px; padding: 0 9px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); }
+.drive { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; background: var(--surface); }
+.drive .gd { width: 22px; height: 22px; border-radius: 6px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent-text); font-size: 12px; font-weight: 700; }
+.gfilters select { max-width: 210px; }
+header.top { flex-wrap: wrap; }
+.mono { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo" aria-hidden="true">in</div>
+  <div>
+    <h1>Reçus LinkedIn Ads</h1>
+    <div class="sub">Les reçus sont lus depuis votre Google Drive et traités dans ce navigateur.</div>
+  </div>
+  <div class="spacer"></div>
+  <div class="gfilters row" role="group" aria-label="Filtrer toute la page" style="gap:8px">
+    <label class="small muted row" style="gap:6px">Client <select id="gClient" aria-label="Client"><option value="">Tous les clients</option></select></label>
+    <label class="small muted row" style="gap:6px">Mois <select id="gMonth" aria-label="Mois"><option value="">Tous les mois</option></select></label>
+    <button class="ghost hidden" id="gReset" title="Retirer les filtres">Effacer les filtres</button>
+  </div>
+  <div class="seg" role="group" aria-label="Thème">
+    <button data-theme-btn="auto" aria-pressed="true">Auto</button>
+    <button data-theme-btn="light" aria-pressed="false">Clair</button>
+    <button data-theme-btn="dark" aria-pressed="false">Sombre</button>
+  </div>
+</header>
+
+<main>
+  <div id="gBanner" class="notice info hidden"></div>
+  <div id="libError" class="notice warn hidden"><span class="ic">⚠</span><div>Les bibliothèques (pdf.js, JSZip, jsPDF, SheetJS) n'ont pas pu être chargées depuis cdnjs. Vérifiez la connexion internet puis rechargez la page. Aucun fichier n'a été lu.</div></div>
+
+  <!-- 1. Import -->
+  <section class="card" id="secImport">
+    <div class="hd"><span class="step">1</span><h2>Importer les reçus</h2><span class="hint">Depuis un dossier Google Drive (et ses sous-dossiers), ou en déposant les PDF.</span></div>
+    <div class="bd">
+      <div class="drive" id="drivePanel">
+        <div class="row">
+          <span class="gd" aria-hidden="true">G</span>
+          <strong>Google Drive</strong>
+          <span class="small muted" id="driveStatus"></span>
+          <span style="flex:1"></span>
+          <button class="primary" id="driveConnect">Se connecter à Google Drive</button>
+          <button class="primary hidden" id="drivePick">Choisir le dossier des reçus</button>
+          <button class="primary hidden" id="driveSync">Synchroniser</button>
+          <button class="hidden" id="driveChange">Changer de dossier</button>
+          <button class="ghost hidden" id="driveLogout">Se déconnecter</button>
+        </div>
+        <div class="small" id="driveFolder" style="margin-top:6px"></div>
+        <div class="progress hidden" id="driveProgress"><div></div></div>
+        <div class="small muted" id="driveProgressText" style="margin-top:6px"></div>
+      </div>
+      <div class="drop" id="drop">
+        <strong>En secours : déposez ici des reçus PDF ou un dossier</strong>
+        <span class="muted small">Les fichiers qui ne sont pas des reçus LinkedIn sont listés dans les contrôles, jamais ignorés en silence.</span>
+        <div class="row">
+          <button class="primary" id="pickFiles">Choisir des fichiers</button>
+          <button id="pickDir">Choisir un dossier</button>
+          <button class="ghost" id="clearAll" disabled>Tout effacer</button>
+        </div>
+        <input type="file" id="inFiles" multiple accept="application/pdf,.pdf" class="hidden">
+        <input type="file" id="inDir" webkitdirectory multiple class="hidden">
+        <div class="progress hidden" id="progress"><div></div></div>
+        <div class="small muted" id="progressText" style="margin-top:6px"></div>
+      </div>
+      <div class="kpis" id="importKpis" style="margin-top:14px"></div>
+      <details class="help" style="margin-top:12px">
+        <summary>Mode d'emploi</summary>
+        <ol>
+          <li>Connectez-vous à Google Drive et choisissez le dossier des reçus (sous-dossiers compris) ; « Synchroniser » ne lit ensuite que les nouveaux fichiers. En secours, déposez les PDF. Un même reçu n'est compté qu'une fois.</li>
+          <li>Rattachez chaque compte publicitaire à un client (étape 2), puis exportez la correspondance : la prochaine fois, réimportez ce fichier JSON.</li>
+          <li>Choisissez la période et le mois de rattachement, consultez les totaux, le graphique et le détail par client.</li>
+          <li>Traitez les reçus « À vérifier » (étape 4), puis exportez le ZIP rangé par client et le fichier Excel.</li>
+        </ol>
+      </details>
+    </div>
+  </section>
+
+  <!-- 2. Correspondance -->
+  <section class="card" id="secMap">
+    <div class="hd"><span class="step">2</span><h2>Comptes publicitaires → clients</h2><span class="hint">Rempli une fois, retrouvé à chaque utilisation (fichier JSON à exporter et réimporter ; aussi gardé dans ce navigateur).</span></div>
+    <div class="bd">
+      <div class="row" style="margin-bottom:10px">
+        <button id="mapExport">Exporter la correspondance (JSON)</button>
+        <button id="mapImport">Importer une correspondance (JSON)</button>
+        <input type="file" id="inMap" accept="application/json,.json" class="hidden">
+        <span class="small muted" id="mapInfo"></span>
+      </div>
+      <div id="mapTable"></div>
+      <datalist id="clientNames"></datalist>
+    </div>
+  </section>
+
+  <!-- 3. Statistiques -->
+  <section class="card" id="secStats">
+    <div class="hd"><span class="step">3</span><h2>Statistiques</h2></div>
+    <div class="bd">
+      <div class="row" style="margin-bottom:14px">
+        <label class="row small" style="gap:6px">Du <input type="month" id="from"></label>
+        <label class="row small" style="gap:6px">au <input type="month" id="to"></label>
+        <button class="ghost" id="allPeriod">Toute la période</button>
+        <span style="flex:1"></span>
+        <span class="small muted">Mois de rattachement</span>
+        <div class="seg" role="group" aria-label="Mois de rattachement">
+          <button data-mode="periode" aria-pressed="true" title="Mois de la fin de la période de facturation">Fin de période</button>
+          <button data-mode="transaction" aria-pressed="false" title="Mois de la date de transaction (paiement)">Date de transaction</button>
+        </div>
+        <span class="small muted">Montant</span>
+        <div class="seg" role="group" aria-label="Montant affiché">
+          <button data-amount="ttc" aria-pressed="true">TTC</button>
+          <button data-amount="ht" aria-pressed="false">HT</button>
+        </div>
+      </div>
+      <div class="kpis" id="statKpis"></div>
+      <div id="statWarn" style="margin-top:12px"></div>
+      <h3 style="font-size:13px;margin:18px 0 8px">Total payé par client</h3>
+      <div id="clientTotals"></div>
+      <div class="row" style="margin:20px 0 6px">
+        <h3 style="font-size:13px;margin:0">Évolution mensuelle par client</h3>
+        <span style="flex:1"></span>
+        <div class="seg" role="group" aria-label="Affichage">
+          <button data-view="chart" aria-pressed="true">Graphique</button>
+          <button data-view="table" aria-pressed="false">Tableau</button>
+        </div>
+      </div>
+      <div id="chartBox"></div>
+      <h3 style="font-size:13px;margin:20px 0 4px">Détail des reçus par client</h3>
+      <div id="clientDetails"></div>
+    </div>
+  </section>
+
+  <!-- 4. Contrôles -->
+  <section class="card" id="secChecks">
+    <div class="hd"><span class="step">4</span><h2>Contrôles</h2><span class="hint">Reçus à vérifier, doublons écartés, fichiers qui ne sont pas des reçus LinkedIn.</span></div>
+    <div class="bd" id="checks"></div>
+  </section>
+
+  <!-- 5. Relevés par client -->
+  <section class="card" id="secReleves">
+    <div class="hd"><span class="step">5</span><h2>Relevés par client</h2><span class="hint">Un relevé par client : reçus triés par date, sous-total par mois, total de la période. PDF (un fichier par client) et Excel.</span></div>
+    <div class="bd">
+      <div class="row" style="margin-bottom:12px">
+        <span class="small muted">Période</span>
+        <div class="seg" role="group" aria-label="Type de période">
+          <button data-rkind="month" aria-pressed="false">Mois</button>
+          <button data-rkind="quarter" aria-pressed="false">Trimestre</button>
+          <button data-rkind="year" aria-pressed="false">Année</button>
+          <button data-rkind="custom" aria-pressed="true">Dates libres</button>
+        </div>
+        <span id="rPeriodInputs" class="row" style="gap:6px"></span>
+        <span style="flex:1"></span>
+        <span class="small muted">Rattachement</span>
+        <div class="seg" role="group" aria-label="Rattachement des reçus">
+          <button data-rmode="periode" aria-pressed="true" title="Mois de la fin de la période de facturation">Fin de période</button>
+          <button data-rmode="transaction" aria-pressed="false" title="Date de transaction (paiement)">Date de transaction</button>
+        </div>
+      </div>
+      <div class="row" id="rClients" style="margin-bottom:12px;gap:6px"></div>
+      <div id="rInfo" style="margin-bottom:10px"></div>
+      <div class="row" style="margin-bottom:6px">
+        <h3 style="font-size:13px;margin:0">Récapitulatif par client et par mois</h3>
+        <span style="flex:1"></span>
+        <div class="seg" role="group" aria-label="Montant du récapitulatif">
+          <button data-ramount="ttc" aria-pressed="true">TTC</button>
+          <button data-ramount="ht" aria-pressed="false">HT</button>
+          <button data-ramount="tva" aria-pressed="false">TVA</button>
+        </div>
+      </div>
+      <div id="rTable"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="rPdf" disabled>Télécharger les relevés PDF</button>
+        <button id="rXlsx" disabled>Télécharger les relevés Excel</button>
+      </div>
+      <div class="small muted" id="rExportInfo" style="margin-top:6px"></div>
+    </div>
+  </section>
+
+  <!-- 6. Récapitulatifs -->
+  <section class="card" id="secRecaps">
+    <div class="hd"><span class="step">6</span><h2>Récapitulatifs</h2><span class="hint">Annuel (une colonne par mois) ou depuis le début (une colonne par année), exportables en PDF et en Excel.</span></div>
+    <div class="bd">
+      <div class="row" style="margin-bottom:12px">
+        <div class="seg" role="group" aria-label="Récapitulatif">
+          <button data-sview="annual" aria-pressed="true">Annuel</button>
+          <button data-sview="lifetime" aria-pressed="false">Depuis le début</button>
+        </div>
+        <label class="row small" id="sYearBox" style="gap:6px">Année <select id="sYear" aria-label="Année"></select></label>
+        <span style="flex:1"></span>
+        <div class="seg" role="group" aria-label="Montant du récapitulatif">
+          <button data-samount="ttc" aria-pressed="true">TTC</button>
+          <button data-samount="ht" aria-pressed="false">HT</button>
+          <button data-samount="tva" aria-pressed="false">TVA</button>
+        </div>
+      </div>
+      <div id="sInfo" class="small" style="margin-bottom:8px"></div>
+      <div id="sTable"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="primary" id="sPdf" disabled>Télécharger en PDF</button>
+        <button id="sXlsx" disabled>Télécharger en Excel</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Exports -->
+  <section class="card" id="secExport">
+    <div class="hd"><span class="step">7</span><h2>Exports</h2><span class="hint">Période et mois de rattachement choisis à l'étape 3.</span></div>
+    <div class="bd">
+      <div class="row">
+        <button class="primary" id="exportZip" disabled>Télécharger le ZIP par client</button>
+        <button id="exportXlsx" disabled>Télécharger le récapitulatif Excel</button>
+      </div>
+      <div class="small muted" id="exportInfo" style="margin-top:8px"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+/* NOYAU-DEBUT — fonctions pures (aucun accès à la page), reprises telles quelles par les tests (tests/test.mjs). */
+const Noyau = (() => {
+  const norm = (s) => String(s ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[  ]/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+
+  /** « 1 234,56 EUR » → { cents: 123456, currency: 'EUR' } ; null si ce n'est pas un montant. */
+  const AMOUNT = /^([-−])?\s*(\()?\s*((?:\d{1,3}(?:[ .  ]\d{3})+|\d+),\d{2})\s*\)?\s*([A-Z]{3})\s*\)?$/;
+  function amount(str) {
+    const m = String(str ?? '').trim().match(AMOUNT);
+    if (!m) return null;
+    const cents = Math.round(Number(m[3].replace(/[ .  ]/g, '').replace(',', '.')) * 100);
+    return { cents: m[1] || m[2] ? -cents : cents, currency: m[4] };
+  }
+
+  /** « 1/10/2025 » (jour/mois/année) → « 2025-10-01 » ; null si la date n'existe pas. */
+  function isoDate(s) {
+    const m = String(s ?? '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (!m) return null;
+    const d = +m[1], mo = +m[2], y = +m[3];
+    const dt = new Date(Date.UTC(y, mo - 1, d));
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) return null;
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+
+  /** Regroupe des morceaux de texte positionnés ({ s, x, y }) en lignes (même hauteur ± tol), de haut en bas. */
+  function lines(items, tol = 3.5) {
+    const out = [];
+    for (const it of [...items].sort((a, b) => b.y - a.y || a.x - b.x)) {
+      const l = out.find((l) => Math.abs(l.y - it.y) <= tol);
+      if (l) l.items.push(it);
+      else out.push({ y: it.y, items: [it] });
+    }
+    for (const l of out) {
+      l.items.sort((a, b) => a.x - b.x);
+      l.x = l.items[0].x;
+      l.text = l.items.map((i) => i.s).join(' ').replace(/\s+/g, ' ').trim();
+    }
+    return out.sort((a, b) => b.y - a.y);
+  }
+
+  /* En-tête du reçu : grille de libellés, chaque valeur sous son libellé, dans la même colonne. */
+  const HEAD = {
+    num: 'N° de facture', periode: 'Période de facturation', tx: 'Identifiant de la transaction', date: 'Date de transaction',
+    adresse: 'Adresse de facturation', entite: 'Infos sur votre activité', accId: 'ID du compte publicitaire', acc: 'Compte publicitaire',
+    paiement: 'Mode de paiement', fiscal: 'Numéro fiscal', montant: 'Montant facturé', details: 'Détails personnalisés',
+  };
+  const HEAD_SET = new Set(Object.values(HEAD).map(norm));
+
+  /** Lignes de valeur sous un libellé (la plus haute occurrence du libellé sur la page). */
+  function headerValue(items, label, multi = false) {
+    const n = norm(label);
+    const L = items.filter((i) => norm(i.s) === n).sort((a, b) => b.y - a.y)[0];
+    if (!L) return null;
+    const col = items.filter((i) => i !== L && i.s.trim() && i.y < L.y - 2 && i.y > L.y - 90 && i.x >= L.x - 4 && i.x < L.x + 138);
+    const vals = [];
+    let prevY = L.y;
+    for (const l of lines(col)) {
+      if (HEAD_SET.has(norm(l.text))) break;
+      if (prevY - l.y > (vals.length ? 16 : 24)) break;
+      vals.push(l.text);
+      prevY = l.y;
+      if (!multi) break;
+    }
+    return vals.length ? vals : null;
+  }
+
+  /** Bloc des totaux (Sous-total, TVA, Total, Règlement, Solde), cherché depuis la dernière page. */
+  function totalsBlock(pages) {
+    for (let p = pages.length - 1; p >= 0; p--) {
+      const items = pages[p].items;
+      const solde = items.filter((i) => /^solde\s*:?$/.test(norm(i.s))).sort((a, b) => a.y - b.y)[0];
+      if (!solde) continue;
+      const zone = { page: p, xMin: solde.x - 12, yMin: solde.y - 6, yMax: solde.y + 140 };
+      const block = items.filter((i) => i.x >= zone.xMin && i.y >= zone.yMin && i.y <= zone.yMax);
+      const t = { zone };
+      for (const l of lines(block, 4)) {
+        const nl = norm(l.text);
+        const value = l.text.replace(/^[^:]*:\s*/, '');
+        if (/^sous-total\s*:/.test(nl)) t.ht = amount(value);
+        else if (/^tva\s*:/.test(nl)) {
+          const m = l.text.match(/:\s*([\d.,]+)\s*%\s*(.*)$/);
+          if (m) { t.rate = Number(m[1].replace(',', '.')); t.tva = amount(m[2]); }
+        } else if (/^total\s*:/.test(nl)) t.ttc = amount(value);
+        else if (/^reglement\s*:/.test(nl)) t.paid = amount(value);
+        else if (/^solde\s*:/.test(nl)) t.balance = amount(value);
+      }
+      return t;
+    }
+    return null;
+  }
+
+  /** Détail des campagnes (groupe, campagne, montant HT, taxe) et somme des sous-totaux par groupe. */
+  function campaignDetail(pages, zone) {
+    const out = { rows: [], subHT: 0, subTax: 0, subtotals: 0 };
+    let group = null;
+    pages.forEach((pg, p) => {
+      const items = pg.items.filter((i) => !(zone && p === zone.page && i.x >= zone.xMin && i.y >= zone.yMin && i.y <= zone.yMax));
+      for (const l of lines(items)) {
+        const first = l.items[0].s.trim();
+        const amounts = l.items.map((i) => amount(i.s)).filter(Boolean);
+        if (/^groupe de campagnes\s*:/.test(norm(l.text))) group = l.text.replace(/^[^:]*:\s*/, '');
+        else if (/^sous-total$/i.test(first) && amounts.length >= 1) {
+          out.subHT += amounts[0].cents;
+          out.subTax += amounts[1] ? amounts[1].cents : 0;
+          out.subtotals++;
+        } else if (/\(ID \d+\)\s*$/.test(first) && amounts.length >= 1) {
+          out.rows.push({ group, campaign: first, ht: amounts[0].cents, tax: amounts[1] ? amounts[1].cents : null });
+        }
+      }
+    });
+    return out;
+  }
+
+  const fmtCents = (c) => (c / 100).toFixed(2).replace('.', ',');
+
+  /**
+   * Lit un reçu à partir du texte positionné de chaque page : pages = [{ items: [{ s, x, y }] }].
+   * Renvoie { kind: 'recu' | 'verifier' | 'autre', reasons: [...], f: { champs } }.
+   */
+  function parseReceipt(pages) {
+    const all = pages.flatMap((p) => p.items);
+    if (!all.some((i) => String(i.s).trim())) return { kind: 'verifier', reasons: ['Aucun texte lisible dans ce PDF (document scanné ou image ?).'], f: {} };
+    const text = norm(all.map((i) => i.s).join(' '));
+    if (!text.includes('linkedin')) return { kind: 'autre', reasons: ['Ce document ne mentionne pas LinkedIn : ce n’est pas un reçu LinkedIn.'], f: {} };
+    const p1 = pages[0].items;
+    if (!text.includes('facture fiscale') || !p1.some((i) => norm(i.s) === norm(HEAD.num))) {
+      return { kind: 'verifier', reasons: ['Document LinkedIn dont la mise en page n’est pas reconnue (autre langue, autre type de facture ?).'], f: {} };
+    }
+    const reasons = [];
+    const g = (k, multi) => headerValue(p1, HEAD[k], multi);
+    const one = (k) => g(k)?.[0] ?? null;
+    const f = {};
+
+    f.num = one('num');
+    if (!f.num) reasons.push('N° de reçu introuvable.');
+    else if (!/^\d{6,}$/.test(f.num)) reasons.push(`N° de reçu inattendu : « ${f.num} ».`);
+    f.tx = one('tx');
+    if (!f.tx) reasons.push('Identifiant de transaction introuvable.');
+
+    const dateRaw = one('date');
+    f.dateTx = isoDate(dateRaw);
+    if (!f.dateTx) reasons.push(dateRaw ? `Date de transaction illisible : « ${dateRaw} ».` : 'Date de transaction introuvable.');
+
+    const perRaw = one('periode');
+    const pm = perRaw && perRaw.replace(/\s/g, '').match(/^(\d{1,2}\/\d{1,2}\/\d{4})-(\d{1,2}\/\d{1,2}\/\d{4})$/);
+    f.periodStart = pm ? isoDate(pm[1]) : null;
+    f.periodEnd = pm ? isoDate(pm[2]) : null;
+    if (!f.periodStart || !f.periodEnd) reasons.push(perRaw ? `Période de facturation illisible : « ${perRaw} ».` : 'Période de facturation introuvable.');
+    else if (f.periodStart > f.periodEnd) reasons.push('Période de facturation à l’envers (début après la fin).');
+
+    f.accId = one('accId');
+    if (!f.accId) reasons.push('Pas d’ID de compte publicitaire : ce n’est peut-être pas un reçu LinkedIn Ads.');
+    else if (!/^\d+$/.test(f.accId)) reasons.push(`ID de compte publicitaire inattendu : « ${f.accId} ».`);
+    f.accName = g('acc', true)?.join(' ') ?? null;
+    if (!f.accName) reasons.push('Nom du compte publicitaire introuvable.');
+    f.entity = one('entite');
+    f.payment = one('paiement');
+    if (!f.payment) reasons.push('Moyen de paiement introuvable.');
+    f.fiscal = one('fiscal');
+
+    const billedRaw = one('montant');
+    const billed = amount(billedRaw);
+    if (!billed) reasons.push(billedRaw ? `Montant facturé illisible : « ${billedRaw} ».` : 'Montant facturé introuvable.');
+
+    const t = totalsBlock(pages);
+    if (!t) reasons.push('Bloc des totaux (Sous-total, TVA, Total, Règlement, Solde) introuvable.');
+    const tt = t ?? {};
+    f.ht = tt.ht?.cents ?? null;
+    f.tva = tt.tva?.cents ?? null;
+    f.ttc = tt.ttc?.cents ?? null;
+    f.rate = tt.rate ?? null;
+    f.paid = tt.paid?.cents ?? null;
+    f.balance = tt.balance?.cents ?? null;
+    const currencies = new Set([billed, tt.ht, tt.tva, tt.ttc, tt.paid, tt.balance].filter(Boolean).map((a) => a.currency));
+    f.currency = currencies.size === 1 ? [...currencies][0] : null;
+    if (t) {
+      if (f.ht == null) reasons.push('Sous-total (HT) introuvable.');
+      if (f.tva == null || f.rate == null) reasons.push('TVA introuvable.');
+      if (f.ttc == null) reasons.push('Total (TTC) introuvable.');
+    }
+    if (currencies.size > 1) reasons.push(`Plusieurs devises sur le même reçu (${[...currencies].join(', ')}).`);
+    else if (f.currency && f.currency !== 'EUR') reasons.push(`Devise ${f.currency} : jamais additionnée aux montants en euros.`);
+
+    if (f.ht != null && f.tva != null && f.ttc != null && f.ht + f.tva !== f.ttc) reasons.push(`HT + TVA ≠ TTC (${fmtCents(f.ht)} + ${fmtCents(f.tva)} ≠ ${fmtCents(f.ttc)}).`);
+    if (billed && f.ttc != null && billed.cents !== f.ttc) reasons.push(`Montant facturé (${fmtCents(billed.cents)}) différent du total (${fmtCents(f.ttc)}).`);
+    if (f.rate != null && f.ht != null && f.tva != null && Math.abs(Math.round((f.ht * f.rate) / 100) - f.tva) > 1) reasons.push(`TVA (${fmtCents(f.tva)}) incohérente avec le taux de ${f.rate} %.`);
+    if (f.ttc != null && f.ttc < 0) reasons.push('Montant négatif : avoir ou remboursement ?');
+    if (f.paid != null && f.ttc != null && f.paid !== f.ttc) reasons.push(`Règlement (${fmtCents(f.paid)}) différent du total (${fmtCents(f.ttc)}).`);
+    if (f.balance != null && f.balance !== 0) reasons.push(`Solde restant de ${fmtCents(f.balance)} : paiement incomplet ?`);
+    if (t && f.balance == null) reasons.push('Solde introuvable.');
+
+    const c = campaignDetail(pages, t?.zone);
+    f.campaigns = c.rows;
+    if (c.subtotals && f.ht != null && c.subHT !== f.ht) reasons.push(`Somme des campagnes (${fmtCents(c.subHT)}) différente du sous-total HT (${fmtCents(f.ht)}).`);
+    if (c.subtotals && f.tva != null && c.subTax !== f.tva) reasons.push(`Somme des taxes des campagnes (${fmtCents(c.subTax)}) différente de la TVA (${fmtCents(f.tva)}).`);
+    f.reverseCharge = f.rate === 0 && text.includes('autoliquidation');
+
+    return { kind: reasons.length ? 'verifier' : 'recu', reasons, f };
+  }
+
+  /** Deux lectures du même n° de reçu décrivent-elles le même paiement ? */
+  const SAME = ['accId', 'dateTx', 'periodStart', 'periodEnd', 'ht', 'tva', 'ttc', 'currency'];
+  const sameReceipt = (a, b) => SAME.every((k) => a[k] === b[k]);
+
+  /** Doublons (même n° de reçu) : le premier importé est gardé ; contenu différent = « À vérifier » des deux côtés. */
+  function markDuplicates(entries) {
+    const seen = new Map();
+    for (const e of entries) { e.dupOf = null; e.conflictWith = null; }
+    for (const e of entries) {
+      const num = e.res?.f?.num;
+      if (!num || e.res.kind === 'autre') continue;
+      const prev = seen.get(num);
+      if (!prev) { seen.set(num, e); continue; }
+      if (sameReceipt(prev.res.f, e.res.f)) e.dupOf = prev.id;
+      else { e.conflictWith = prev.id; if (!prev.conflictWith) prev.conflictWith = e.id; }
+    }
+  }
+
+  /** Un reçu « À vérifier » peut être compté à la main s'il a au moins : n°, compte, dates, TTC en euros. */
+  const canForce = (f) => !!(f && f.num && f.accId && f.dateTx && f.periodEnd && f.ttc != null && f.ht != null && f.tva != null && f.currency === 'EUR');
+
+  /** État final d'une entrée : recu (compté), verifier, doublon, autre. */
+  function statusOf(e, forced) {
+    if (!e.res || e.res.kind === 'autre') return 'autre';
+    if (e.dupOf) return 'doublon';
+    if (e.conflictWith) return 'verifier';
+    if (e.res.kind === 'verifier') return forced.has(e.id) && canForce(e.res.f) ? 'recu' : 'verifier';
+    return 'recu';
+  }
+
+  /** Mois de rattachement : fin de la période de facturation (par défaut) ou date de transaction. */
+  const monthOf = (f, mode) => ((mode === 'transaction' ? f.dateTx : f.periodEnd) || '').slice(0, 7) || null;
+
+  const UNMAPPED = 'Non rattaché';
+  const clientOf = (f, mapping) => (mapping[f.accId]?.client || '').trim() || UNMAPPED;
+
+  /** Nom de fichier ou de dossier sans caractères interdits par Windows. */
+  function safeName(s) {
+    const out = String(s ?? '').normalize('NFC').replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().replace(/[. ]+$/, '');
+    return out || 'Sans nom';
+  }
+  /** « 2026-10_Client-X_Recu-123456789012.pdf » (exemple fictif). */
+  const fileNameFor = (f, client, mode) => `${monthOf(f, mode)}_${safeName(client).replace(/ /g, '-')}_Recu-${safeName(f.num)}.pdf`;
+
+  /**
+   * Rapport sur les reçus comptés de la période : lignes, totaux par client et par client × mois.
+   * opts = { mode, from: 'AAAA-MM' | '', to: 'AAAA-MM' | '' }
+   */
+  function buildReport(entries, mapping, forced, opts) {
+    const rows = [];
+    const verify = [], dups = [], others = [];
+    for (const e of entries) {
+      const st = statusOf(e, forced);
+      if (st === 'autre') { others.push(e); continue; }
+      if (st === 'doublon') { dups.push(e); continue; }
+      if (st === 'verifier') { verify.push(e); continue; }
+      const f = e.res.f;
+      const month = monthOf(f, opts.mode);
+      if (opts.from && month < opts.from) continue;
+      if (opts.to && month > opts.to) continue;
+      rows.push({ e, f, month, client: clientOf(f, mapping), forced: e.res.kind === 'verifier' });
+    }
+    rows.sort((a, b) => a.client.localeCompare(b.client, 'fr') || a.month.localeCompare(b.month) || (a.f.dateTx || '').localeCompare(b.f.dateTx || '') || a.f.num.localeCompare(b.f.num));
+    const add = (o, f) => { o.n++; o.ht += f.ht; o.tva += f.tva; o.ttc += f.ttc; };
+    const zero = () => ({ n: 0, ht: 0, tva: 0, ttc: 0 });
+    const byClient = new Map(), byClientMonth = new Map(), byMonth = new Map();
+    const total = zero();
+    for (const r of rows) {
+      if (!byClient.has(r.client)) byClient.set(r.client, zero());
+      add(byClient.get(r.client), r.f);
+      const k = `${r.client}\u0000${r.month}`;
+      if (!byClientMonth.has(k)) byClientMonth.set(k, zero());
+      add(byClientMonth.get(k), r.f);
+      if (!byMonth.has(r.month)) byMonth.set(r.month, zero());
+      add(byMonth.get(r.month), r.f);
+      add(total, r.f);
+    }
+    const first = opts.from || [...byMonth.keys()].sort()[0];
+    const last = opts.to || [...byMonth.keys()].sort().at(-1);
+    const months = first && last ? monthRange(first, last) : [];
+    return { rows, byClient, byClientMonth, byMonth, total, months, verify, dups, others };
+  }
+
+  function monthRange(from, to) {
+    const out = [];
+    let [y, m] = from.split('-').map(Number);
+    const [ty, tm] = to.split('-').map(Number);
+    while (y < ty || (y === ty && m <= tm)) {
+      out.push(`${y}-${String(m).padStart(2, '0')}`);
+      if (++m > 12) { m = 1; y++; }
+      if (out.length > 600) break;
+    }
+    return out;
+  }
+
+  const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  const monthLabel = (ym, short = false) => { const [y, m] = ym.split('-').map(Number); return `${(short ? MONTHS_SHORT : MONTHS)[m - 1]} ${short ? String(y).slice(2) : y}`; };
+
+  /** Fichiers du ZIP : un dossier par client (reçus renommés) + « _À vérifier » (noms d'origine). */
+  function zipPlan(report, mode) {
+    const plan = [];
+    const used = new Set();
+    const uniq = (p) => { let q = p, i = 2; while (used.has(q.toLowerCase())) q = p.replace(/(\.pdf)?$/i, ` (${i++})$1`); used.add(q.toLowerCase()); return q; };
+    for (const r of report.rows) plan.push({ path: uniq(`${safeName(r.client)}/${fileNameFor(r.f, r.client, mode)}`), id: r.e.id });
+    for (const e of report.verify) plan.push({ path: uniq(`_À vérifier/${safeName(e.name)}`), id: e.id });
+    return plan;
+  }
+
+  /** Classeur Excel : Reçus (une ligne par reçu), Totaux (client × mois), Contrôles. */
+  function buildWorkbook(XLSX, report, opts) {
+    const eur = (c) => (c == null ? null : c / 100);
+    const date = (iso) => (iso ? new Date(`${iso}T00:00:00Z`) : null);
+    const modeLabel = opts.mode === 'transaction' ? 'date de transaction' : 'fin de la période de facturation';
+    const head = ['Mois', 'Client', 'Compte publicitaire', 'ID du compte', 'N° de reçu', 'N° de transaction', 'Date de transaction', 'Début de période', 'Fin de période', 'HT', 'TVA', 'Taux de TVA', 'TTC', 'Devise', 'Moyen de paiement', 'Entité facturée', 'Remarque', 'Fichier'];
+    const data = [head];
+    for (const r of report.rows) {
+      const f = r.f;
+      data.push([r.month, r.client, f.accName, f.accId, f.num, f.tx, date(f.dateTx), date(f.periodStart), date(f.periodEnd), eur(f.ht), eur(f.tva), f.rate == null ? null : f.rate / 100, eur(f.ttc), f.currency, f.payment, f.entity,
+        [f.reverseCharge ? 'Autoliquidation de la TVA' : '', r.forced ? 'Compté à la main malgré un contrôle' : ''].filter(Boolean).join(' ; '), r.e.path || r.e.name]);
+    }
+    const ws1 = XLSX.utils.aoa_to_sheet(data, { cellDates: true });
+    formatColumns(XLSX, ws1, data.length, { 6: 'dd/mm/yyyy', 7: 'dd/mm/yyyy', 8: 'dd/mm/yyyy', 9: '#,##0.00', 10: '#,##0.00', 11: '0%', 12: '#,##0.00' });
+    ws1['!cols'] = [9, 22, 26, 13, 15, 13, 12, 12, 12, 11, 10, 8, 11, 7, 20, 22, 26, 50].map((w) => ({ wch: w }));
+    ws1['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(0, data.length - 1), c: head.length - 1 } }) };
+
+    // Totaux : client × mois (montant choisi), puis HT / TVA / TTC par client.
+    const key = opts.amount === 'ht' ? 'ht' : 'ttc';
+    const clients = [...report.byClient.keys()].sort((a, b) => a.localeCompare(b, 'fr'));
+    const t = [];
+    t.push([`Totaux ${key.toUpperCase()} en euros, par client et par mois (mois de rattachement : ${modeLabel}).`]);
+    t.push([`Période : ${report.months.length ? `${monthLabel(report.months[0])} à ${monthLabel(report.months.at(-1))}` : '—'}. Doublons comptés une seule fois ; reçus « À vérifier » non comptés (${report.verify.length}).`]);
+    t.push([]);
+    const pivotTop = t.length;
+    t.push(['Client', ...report.months.map((m) => monthLabel(m)), 'Total']);
+    for (const c of clients) {
+      t.push([c, ...report.months.map((m) => { const v = report.byClientMonth.get(`${c}\u0000${m}`); return v ? eur(v[key]) : 0; }), eur(report.byClient.get(c)[key])]);
+    }
+    t.push(['Total', ...report.months.map((m) => eur(report.byMonth.get(m)?.[key] ?? 0)), eur(report.total[key])]);
+    const pivotBottom = t.length;
+    t.push([]);
+    const sumTop = t.length;
+    t.push(['Client', 'Nombre de reçus', 'HT', 'TVA', 'TTC']);
+    for (const c of clients) { const v = report.byClient.get(c); t.push([c, v.n, eur(v.ht), eur(v.tva), eur(v.ttc)]); }
+    t.push(['Total', report.total.n, eur(report.total.ht), eur(report.total.tva), eur(report.total.ttc)]);
+    const ws2 = XLSX.utils.aoa_to_sheet(t);
+    for (let r = pivotTop + 1; r < pivotBottom; r++) for (let c = 1; c <= report.months.length + 1; c++) setFmt(XLSX, ws2, r, c, '#,##0.00');
+    for (let r = sumTop + 1; r < t.length; r++) for (let c = 2; c <= 4; c++) setFmt(XLSX, ws2, r, c, '#,##0.00');
+    ws2['!cols'] = [{ wch: 26 }, ...report.months.map(() => ({ wch: 12 })), { wch: 13 }];
+
+    const ctl = [['Statut', 'Fichier', 'N° de reçu', 'Détail']];
+    for (const e of report.verify) ctl.push(['À vérifier (non compté)', e.path || e.name, e.res?.f?.num ?? '', e.reasonsText]);
+    for (const e of report.dups) ctl.push(['Doublon (compté une fois)', e.path || e.name, e.res?.f?.num ?? '', `Même reçu que ${e.dupOfName}`]);
+    for (const e of report.others) ctl.push(['Pas un reçu LinkedIn', e.path || e.name, '', e.reasonsText]);
+    const ws3 = XLSX.utils.aoa_to_sheet(ctl);
+    ws3['!cols'] = [{ wch: 24 }, { wch: 60 }, { wch: 15 }, { wch: 80 }];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws1, 'Reçus');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Totaux');
+    XLSX.utils.book_append_sheet(wb, ws3, 'Contrôles');
+    return wb;
+  }
+  function setFmt(XLSX, ws, r, c, z) { const cell = ws[XLSX.utils.encode_cell({ r, c })]; if (cell && cell.t === 'n') cell.z = z; }
+  function formatColumns(XLSX, ws, nRows, fmts) { for (let r = 1; r < nRows; r++) for (const [c, z] of Object.entries(fmts)) { const cell = ws[XLSX.utils.encode_cell({ r, c: +c })]; if (cell && (cell.t === 'n' || cell.t === 'd')) cell.z = z; } }
+
+  /* Correspondance compte → client, fichier JSON. */
+  const MAP_FORMAT = 'recus-linkedin-correspondance';
+  function mappingToJson(mapping, now = new Date()) {
+    const comptes = Object.entries(mapping)
+      .map(([id, v]) => ({ id_compte: id, nom_compte: v.name || '', client: (v.client || '').trim() }))
+      .sort((a, b) => a.client.localeCompare(b.client, 'fr') || a.nom_compte.localeCompare(b.nom_compte, 'fr'));
+    return { format: MAP_FORMAT, version: 1, exporte_le: now.toISOString(), comptes };
+  }
+  function mappingFromJson(obj) {
+    if (!obj || obj.format !== MAP_FORMAT || !Array.isArray(obj.comptes)) throw new Error('Ce fichier n’est pas une correspondance exportée par cet outil.');
+    const out = {};
+    for (const c of obj.comptes) {
+      const id = String(c.id_compte ?? '').trim();
+      if (!/^\d+$/.test(id)) throw new Error(`ID de compte invalide dans le fichier : « ${id} ».`);
+      out[id] = { name: String(c.nom_compte ?? ''), client: String(c.client ?? '').trim() };
+    }
+    return out;
+  }
+
+  /* ---------- Relevés par client ---------- */
+
+  /** Date de rattachement d'un reçu : fin de la période de facturation (par défaut) ou date de transaction. */
+  const attribDate = (f, mode) => (mode === 'transaction' ? f.dateTx : f.periodEnd) || null;
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const lastDay = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const frDate = (iso) => (iso ? iso.split('-').reverse().join('/') : '–');
+  const MODE_LABEL = { periode: 'mois de fin de la période de facturation', transaction: 'date de transaction (paiement)' };
+
+  /**
+   * Période d'un relevé : { kind: 'month', month: 'AAAA-MM' } | { kind: 'quarter', year, quarter } | { kind: 'year', year }
+   * | { kind: 'custom', from: 'AAAA-MM-JJ', to: 'AAAA-MM-JJ' } → { from, to, label, detail, slug } (bornes incluses).
+   */
+  function periodRange(spec) {
+    let from, to, label, slug;
+    if (spec.kind === 'month') {
+      if (!/^\d{4}-\d{2}$/.test(spec.month || '')) throw new Error('Choisissez un mois.');
+      const [y, m] = spec.month.split('-').map(Number);
+      from = `${spec.month}-01`; to = `${spec.month}-${pad2(lastDay(y, m))}`; label = monthLabel(spec.month); slug = spec.month;
+    } else if (spec.kind === 'quarter') {
+      const y = Number(spec.year), q = Number(spec.quarter);
+      if (!(y > 1900) || !(q >= 1 && q <= 4)) throw new Error('Choisissez une année et un trimestre.');
+      const m1 = (q - 1) * 3 + 1, m3 = m1 + 2;
+      from = `${y}-${pad2(m1)}-01`; to = `${y}-${pad2(m3)}-${pad2(lastDay(y, m3))}`;
+      label = `${q === 1 ? '1er' : `${q}e`} trimestre ${y}`; slug = `${y}-T${q}`;
+    } else if (spec.kind === 'year') {
+      const y = Number(spec.year);
+      if (!(y > 1900)) throw new Error('Choisissez une année.');
+      from = `${y}-01-01`; to = `${y}-12-31`; label = `année ${y}`; slug = String(y);
+    } else {
+      const ok = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d || '') && isoDate(frDate(d)) === d;
+      if (!ok(spec.from) || !ok(spec.to)) throw new Error('Indiquez une date de début et une date de fin.');
+      if (spec.from > spec.to) throw new Error('La date de début est après la date de fin.');
+      from = spec.from; to = spec.to; label = `du ${frDate(from)} au ${frDate(to)}`; slug = `${from}_${to}`;
+    }
+    return { from, to, label, detail: `du ${frDate(from)} au ${frDate(to)}`, slug };
+  }
+
+  /**
+   * Relevés des clients choisis sur une période (dates incluses) : reçus comptés triés par date, sous-totaux par mois,
+   * total ; reçus « À vérifier » comptés à part (jamais dans les totaux).
+   * opts = { mode, from, to, clients: [noms] }
+   */
+  function buildStatements(entries, mapping, forced, opts) {
+    const zero = () => ({ n: 0, ht: 0, tva: 0, ttc: 0 });
+    const add = (o, f) => { o.n++; o.ht += f.ht; o.tva += f.tva; o.ttc += f.ttc; };
+    const per = new Map(opts.clients.map((c) => [c, { client: c, accounts: new Map(), rows: [], pending: new Set(), pendingNoDate: 0 }]));
+    for (const [id, v] of Object.entries(mapping)) {
+      const c = (v.client || '').trim() || UNMAPPED;
+      if (per.has(c)) per.get(c).accounts.set(id, v.name || '');
+    }
+    const unassigned = new Set();
+    for (const e of entries) {
+      const st = statusOf(e, forced);
+      const f = e.res?.f || {};
+      if (st === 'recu') {
+        const d = attribDate(f, opts.mode);
+        if (!d || d < opts.from || d > opts.to) continue;
+        const s = per.get(clientOf(f, mapping));
+        if (!s) continue;
+        s.rows.push({ e, f, date: d, month: d.slice(0, 7) });
+        if (!s.accounts.has(f.accId)) s.accounts.set(f.accId, f.accName || '');
+      } else if (st === 'verifier') {
+        // En attente : dans la période si sa date est lisible ; sans date lisible, signalé quand même.
+        const d = attribDate(f, opts.mode);
+        if (d && (d < opts.from || d > opts.to)) continue;
+        const id = f.num || `fichier-${e.id}`;
+        if (!f.accId) { unassigned.add(id); continue; }
+        const s = per.get(clientOf(f, mapping));
+        if (s && !s.pending.has(id)) { s.pending.add(id); if (!d) s.pendingNoDate++; }
+      }
+    }
+    const months = monthRange(opts.from.slice(0, 7), opts.to.slice(0, 7));
+    const total = zero();
+    let pendingTotal = 0;
+    const statements = [...per.values()].map((s) => {
+      s.rows.sort((a, b) => a.date.localeCompare(b.date) || (a.f.dateTx || '').localeCompare(b.f.dateTx || '') || a.f.num.localeCompare(b.f.num));
+      const byMonth = new Map();
+      for (const r of s.rows) {
+        if (!byMonth.has(r.month)) byMonth.set(r.month, { month: r.month, rows: [], sub: zero() });
+        const g = byMonth.get(r.month);
+        g.rows.push(r);
+        add(g.sub, r.f);
+      }
+      const t = zero();
+      for (const r of s.rows) add(t, r.f);
+      for (const k of ['n', 'ht', 'tva', 'ttc']) total[k] += t[k];
+      pendingTotal += s.pending.size;
+      return {
+        client: s.client,
+        accounts: [...s.accounts.entries()].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name, 'fr') || a.id.localeCompare(b.id)),
+        groups: [...byMonth.values()].sort((a, b) => a.month.localeCompare(b.month)),
+        byMonth: new Map([...byMonth].map(([m, g]) => [m, g.sub])),
+        total: t,
+        pending: s.pending.size,
+        pendingNoDate: s.pendingNoDate,
+      };
+    });
+    return { statements, months, total, pendingTotal, unassignedPending: unassigned.size };
+  }
+
+  /* Texte d'un PDF : jsPDF (polices standard) n'affiche que le jeu de caractères Windows (WinAnsi). */
+  const WIN_EXTRA = new Set([...'€‚ƒ„…†‡ˆ‰Š‹ŒŽ‘’“”•–—˜™š›œžŸ']);
+  const inWin = (ch) => { const c = ch.charCodeAt(0); return (c >= 0x20 && c <= 0x7e) || (c >= 0xa0 && c <= 0xff) || WIN_EXTRA.has(ch); };
+  function pdfText(s) {
+    return [...String(s ?? '').normalize('NFC').replace(/[   ]/g, ' ').replace(/\s/g, (w) => (w === ' ' ? w : ' '))]
+      .map((ch) => { if (inWin(ch)) return ch; const base = ch.normalize('NFD').replace(/[̀-ͯ]/g, ''); return base && [...base].every(inWin) ? base : '?'; })
+      .join('');
+  }
+  /** 123456 → « 1 234,56 € » (espaces insécables). */
+  function money(cents) {
+    const neg = cents < 0, v = Math.abs(cents);
+    const int = String(Math.floor(v / 100)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    return `${neg ? '-' : ''}${int},${pad2(v % 100)} €`;
+  }
+  const plural = (n, one, many = `${one}s`) => `${n} ${n > 1 ? many : one}`;
+
+  /** Relevé PDF d'un client (A4, sobre). jsPDF est passé en paramètre (navigateur : window.jspdf.jsPDF). */
+  function statementPdf(jsPDF, st, meta) {
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+    const T = pdfText;
+    doc.setProperties({ title: T(`Relevé LinkedIn Ads – ${st.client} – ${meta.label}`), subject: 'Relevé des dépenses LinkedIn Ads', creator: 'Reçus LinkedIn Ads' });
+    const M = 15, W = 180, BOTTOM = 297 - 20;
+    const ACC = [91, 91, 214], FG = [27, 27, 31], MUTED = [99, 99, 107], SUBTLE = [154, 154, 161], LINE = [221, 220, 216], FILL = [245, 245, 243], WARN = [178, 98, 5];
+    const color = (c) => doc.setTextColor(c[0], c[1], c[2]);
+    const font = (style, size) => { doc.setFont('helvetica', style); doc.setFontSize(size); };
+    const fit = (s, w) => {
+      let t = T(s);
+      if (doc.getTextWidth(t) <= w) return t;
+      while (t.length > 1 && doc.getTextWidth(`${t}…`) > w) t = t.slice(0, -1);
+      return `${t.trimEnd()}…`;
+    };
+    let y = 18;
+    font('bold', 8.5); color(ACC);
+    doc.text(T('RELEVÉ DES DÉPENSES LINKEDIN ADS'), M, y);
+    y += 8;
+    font('bold', 17); color(FG);
+    for (const l of doc.splitTextToSize(T(st.client), W)) { doc.text(l, M, y); y += 7; }
+    y += 1;
+    const info = [
+      ['Comptes publicitaires', st.accounts.length ? st.accounts.map((a) => `${a.name || 'Compte'} (${a.id})`).join(', ') : 'aucun compte rattaché'],
+      ['Période couverte', `${meta.label}${meta.label.startsWith('du ') ? '' : ` (${meta.detail})`}`],
+      ['Rattachement des reçus', MODE_LABEL[meta.mode] || meta.mode],
+      ['Date d’édition', meta.editedOn],
+    ];
+    for (const [k, v] of info) {
+      font('normal', 9); color(MUTED);
+      doc.text(T(k), M, y);
+      color(FG);
+      const ls = doc.splitTextToSize(T(v), W - 45);
+      ls.forEach((l, i) => doc.text(l, M + 45, y + i * 4.4));
+      y += Math.max(1, ls.length) * 4.4 + 0.8;
+    }
+    // Chiffres clés.
+    y += 3;
+    const boxes = [['Total TTC', money(st.total.ttc)], ['Total HT', money(st.total.ht)], ['TVA', money(st.total.tva)], ['Reçus comptés', String(st.total.n)]];
+    const bw = (W - 3 * 4) / 4;
+    boxes.forEach(([k, v], i) => {
+      const x = M + i * (bw + 4);
+      doc.setDrawColor(LINE[0], LINE[1], LINE[2]); doc.setLineWidth(0.25);
+      doc.roundedRect(x, y, bw, 15, 2, 2, 'S');
+      font('normal', 8); color(MUTED); doc.text(T(k), x + 3.5, y + 5.2);
+      font('bold', 12); color(FG); doc.text(T(v), x + 3.5, y + 11.5);
+    });
+    y += 21;
+    font('normal', 9);
+    if (st.pending) {
+      color(WARN);
+      doc.text(T(`Attention : ${plural(st.pending, 'reçu')} en attente de vérification ${st.pending > 1 ? 'ne sont' : 'n’est'} pas compté${st.pending > 1 ? 's' : ''} dans ce relevé${st.pendingNoDate ? ` (dont ${st.pendingNoDate} sans date lisible)` : ''}.`), M, y);
+    } else {
+      color(MUTED);
+      doc.text(T('Aucun reçu en attente de vérification pour ce client sur la période.'), M, y);
+    }
+    y += 8;
+
+    // Tableau des reçus.
+    const cols = [
+      { k: 'Date', w: 19 }, { k: 'Période de facturation', w: 35 }, { k: 'N° de reçu', w: 25 }, { k: 'Compte', w: 42 },
+      { k: 'HT', w: 20, r: true }, { k: 'TVA', w: 18, r: true }, { k: 'TTC', w: 21, r: true },
+    ];
+    const RH = 5.6;
+    const row = (cells, opts = {}) => {
+      if (opts.fill) { doc.setFillColor(opts.fill[0], opts.fill[1], opts.fill[2]); doc.rect(M, y, W, RH, 'F'); }
+      let x = M;
+      cols.forEach((c, i) => {
+        const v = cells[i];
+        // Ligne de libellé (mois, sous-total, total) : le texte occupe les quatre premières colonnes.
+        const w = opts.span && i === 0 ? cols.slice(0, 4).reduce((a, b) => a + b.w, 0) : c.w;
+        if (v != null && v !== '' && !(opts.span && i > 0 && i < 4)) {
+          if (c.r) {
+            // Montant : jamais tronqué ; police réduite si la colonne est trop étroite.
+            const size = doc.getFontSize();
+            const t = T(v);
+            while (doc.getTextWidth(t) > w - 2.5 && doc.getFontSize() > 6) doc.setFontSize(doc.getFontSize() - 0.25);
+            doc.text(t, x + w - 1.5, y + 3.9, { align: 'right' });
+            doc.setFontSize(size);
+          } else doc.text(fit(v, w - 3), x + 1.5, y + 3.9);
+        }
+        x += c.w;
+      });
+      if (opts.line !== false) { doc.setDrawColor(LINE[0], LINE[1], LINE[2]); doc.setLineWidth(0.15); doc.line(M, y + RH, M + W, y + RH); }
+      y += RH;
+    };
+    const head = () => { font('bold', 7.8); color(MUTED); row(cols.map((c) => c.k), { fill: FILL }); };
+    const ensure = (h) => {
+      if (y + h <= BOTTOM) return;
+      doc.addPage();
+      // Rappel en haut des pages suivantes : client et période.
+      font('normal', 8); color(MUTED);
+      doc.text(fit(`${st.client} · relevé LinkedIn Ads · ${meta.label} (suite)`, W), M, 14);
+      y = 18;
+      head();
+    };
+    if (!st.groups.length) {
+      font('normal', 9.5); color(MUTED);
+      doc.text(T('Aucun reçu sur la période.'), M, y + 4);
+      y += 10;
+    } else {
+      head();
+      for (const g of st.groups) {
+        ensure(RH * 3);
+        font('bold', 8.5); color(FG);
+        row([monthLabel(g.month).replace(/^./, (c) => c.toUpperCase())], { line: false, span: true });
+        for (const r of g.rows) {
+          ensure(RH * 2);
+          font('normal', 8); color(FG);
+          row([frDate(r.f.dateTx), `${frDate(r.f.periodStart)} – ${frDate(r.f.periodEnd)}`, r.f.num, r.f.accName, money(r.f.ht), money(r.f.tva), money(r.f.ttc)]);
+        }
+        ensure(RH);
+        font('bold', 8); color(FG);
+        row([`Sous-total ${monthLabel(g.month)} · ${plural(g.sub.n, 'reçu')}`, '', '', '', money(g.sub.ht), money(g.sub.tva), money(g.sub.ttc)], { fill: FILL, span: true });
+        y += 1.5;
+      }
+    }
+    // Total de la période (aussi pour un relevé sans reçu : montants à zéro).
+    {
+      ensure(RH * 2);
+      doc.setDrawColor(ACC[0], ACC[1], ACC[2]); doc.setLineWidth(0.5); doc.line(M, y, M + W, y);
+      y += 0.6;
+      font('bold', 8.6); color(FG);
+      row([`Total de la période · ${plural(st.total.n, 'reçu')}`, '', '', '', money(st.total.ht), money(st.total.tva), money(st.total.ttc)], { line: false, span: true });
+    }
+    // Pied de page.
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      font('normal', 7.2); color(SUBTLE);
+      doc.text(T('Montants en euros, d’après les reçus LinkedIn importés. Doublons comptés une seule fois ; reçus « À vérifier » non comptés.'), M, 297 - 10);
+      doc.text(T(`Page ${i} / ${pages}`), M + W, 297 - 10, { align: 'right' });
+    }
+    return doc;
+  }
+
+  /** Noms d'onglets Excel : 31 caractères, sans []:*?/\, uniques. */
+  function sheetNames(names, reserved = []) {
+    const used = new Set(reserved.map((n) => n.toLowerCase()));
+    return names.map((n) => {
+      const base = (String(n).replace(/[[\]:*?/\\]/g, ' ').replace(/\s+/g, ' ').trim() || 'Client').slice(0, 31);
+      let s = base, i = 2;
+      while (used.has(s.toLowerCase())) { const suf = ` (${i++})`; s = base.slice(0, 31 - suf.length) + suf; }
+      used.add(s.toLowerCase());
+      return s;
+    });
+  }
+
+  /** Relevés Excel : un onglet récapitulatif (total de chaque client, puis TTC par mois) et un onglet par client. */
+  function statementWorkbook(XLSX, res, meta) {
+    const eur = (c) => c / 100;
+    const fmt = '#,##0.00 "€"';
+    const wb = XLSX.utils.book_new();
+    const accountsText = (st) => st.accounts.map((a) => `${a.name || 'Compte'} (${a.id})`).join(', ');
+    const setFmt = (ws, r, c, z) => { const cell = ws[XLSX.utils.encode_cell({ r, c })]; if (cell && (cell.t === 'n' || cell.t === 'd')) cell.z = z; };
+
+    const rec = [
+      ['Relevés des dépenses LinkedIn Ads'],
+      [`Période : ${meta.label}${meta.label.startsWith('du ') ? '' : ` (${meta.detail})`}`],
+      [`Rattachement des reçus : ${MODE_LABEL[meta.mode] || meta.mode}`],
+      [`Édité le ${meta.editedOn}. Doublons comptés une seule fois ; reçus « À vérifier » non comptés.`],
+      [],
+    ];
+    const top = rec.length;
+    rec.push(['Client', 'Comptes publicitaires', 'Reçus comptés', 'HT', 'TVA', 'TTC', 'À vérifier (non comptés)']);
+    for (const st of res.statements) rec.push([st.client, accountsText(st), st.total.n, eur(st.total.ht), eur(st.total.tva), eur(st.total.ttc), st.pending]);
+    rec.push(['Total', '', res.total.n, eur(res.total.ht), eur(res.total.tva), eur(res.total.ttc), res.pendingTotal]);
+    const sumEnd = rec.length;
+    if (res.unassignedPending) rec.push([], [`${plural(res.unassignedPending, 'reçu')} à vérifier sans compte publicitaire lisible : rattaché${res.unassignedPending > 1 ? 's' : ''} à aucun client.`]);
+    rec.push([], ['TTC par mois']);
+    const pivTop = rec.length;
+    rec.push(['Client', ...res.months.map((m) => monthLabel(m)), 'Total']);
+    for (const st of res.statements) rec.push([st.client, ...res.months.map((m) => eur(st.byMonth.get(m)?.ttc ?? 0)), eur(st.total.ttc)]);
+    rec.push(['Total', ...res.months.map((m) => eur(res.statements.reduce((s, st) => s + (st.byMonth.get(m)?.ttc ?? 0), 0))), eur(res.total.ttc)]);
+    const ws = XLSX.utils.aoa_to_sheet(rec);
+    for (let r = top + 1; r < sumEnd; r++) for (const c of [3, 4, 5]) setFmt(ws, r, c, fmt);
+    for (let r = pivTop + 1; r < rec.length; r++) for (let c = 1; c <= res.months.length + 1; c++) setFmt(ws, r, c, fmt);
+    ws['!cols'] = [{ wch: 26 }, { wch: 40 }, ...res.months.map(() => ({ wch: 14 })), { wch: 14 }];
+    XLSX.utils.book_append_sheet(wb, ws, 'Récapitulatif');
+
+    const names = sheetNames(res.statements.map((s) => s.client), ['Récapitulatif']);
+    res.statements.forEach((st, i) => {
+      const a = [
+        ['Relevé des dépenses LinkedIn Ads'],
+        ['Client', st.client],
+        ['Comptes publicitaires', accountsText(st) || 'aucun compte rattaché'],
+        ['Période couverte', `${meta.label}${meta.label.startsWith('du ') ? '' : ` (${meta.detail})`}`],
+        ['Rattachement des reçus', MODE_LABEL[meta.mode] || meta.mode],
+        ['Date d’édition', meta.editedOn],
+        ['Reçus en attente de vérification (non comptés)', st.pending],
+        [],
+        ['Date', 'Période de facturation', 'N° de reçu', 'Compte', 'HT', 'TVA', 'TTC'],
+      ];
+      const numRows = [];
+      for (const g of st.groups) {
+        a.push([monthLabel(g.month).replace(/^./, (c) => c.toUpperCase())]);
+        for (const r of g.rows) {
+          numRows.push(a.length);
+          a.push([new Date(`${r.f.dateTx}T00:00:00Z`), `${frDate(r.f.periodStart)} – ${frDate(r.f.periodEnd)}`, r.f.num, r.f.accName, eur(r.f.ht), eur(r.f.tva), eur(r.f.ttc)]);
+        }
+        numRows.push(a.length);
+        a.push([`Sous-total ${monthLabel(g.month)} (${plural(g.sub.n, 'reçu')})`, '', '', '', eur(g.sub.ht), eur(g.sub.tva), eur(g.sub.ttc)]);
+      }
+      if (!st.groups.length) a.push(['Aucun reçu sur la période.'])
+      numRows.push(a.length);
+      a.push([`Total de la période (${plural(st.total.n, 'reçu')})`, '', '', '', eur(st.total.ht), eur(st.total.tva), eur(st.total.ttc)]);
+      const w = XLSX.utils.aoa_to_sheet(a, { cellDates: true });
+      for (const r of numRows) { setFmt(w, r, 0, 'dd/mm/yyyy'); for (const c of [4, 5, 6]) setFmt(w, r, c, fmt); }
+      w['!cols'] = [{ wch: 30 }, { wch: 24 }, { wch: 15 }, { wch: 30 }, { wch: 13 }, { wch: 12 }, { wch: 13 }];
+      XLSX.utils.book_append_sheet(wb, w, names[i]);
+    });
+    return wb;
+  }
+
+  /* ---------- Filtre global de la page (client, mois) ---------- */
+
+  /**
+   * Entrées du client et du mois choisis (vide = tous ; mois selon le mode de rattachement). Sans filtre : toutes.
+   * Un fichier sans reçu lisible (pas un reçu LinkedIn, PDF illisible, compte illisible) n'a ni client ni mois :
+   * il est écarté dès qu'un filtre est actif (il reste dans les contrôles).
+   */
+  function filterEntries(entries, mapping, opts) {
+    if (!opts.client && !opts.month) return entries;
+    return entries.filter((e) => {
+      const f = e.res?.f;
+      if (!f || !f.accId) return false;
+      if (opts.client && clientOf(f, mapping) !== opts.client) return false;
+      if (opts.month && monthOf(f, opts.mode) !== opts.month) return false;
+      return true;
+    });
+  }
+
+  /** Clients et mois qui ont des reçus comptés (pour les sélecteurs du haut de page). */
+  function filterOptions(entries, mapping, forced, mode) {
+    const clients = new Set(), months = new Set();
+    for (const e of entries) {
+      if (statusOf(e, forced) !== 'recu') continue;
+      clients.add(clientOf(e.res.f, mapping));
+      const m = monthOf(e.res.f, mode);
+      if (m) months.add(m);
+    }
+    return { clients: [...clients].sort(byClientName), months: [...months].sort() };
+  }
+
+  /* ---------- Récapitulatifs (annuel, depuis le début) ---------- */
+
+  const zeroT = () => ({ n: 0, ht: 0, tva: 0, ttc: 0 });
+  const addT = (o, f) => { o.n++; o.ht += f.ht; o.tva += f.tva; o.ttc += f.ttc; };
+  const byClientName = (a, b) => (a === UNMAPPED) - (b === UNMAPPED) || a.localeCompare(b, 'fr');
+
+  /** Reçus comptés avec leur client et leur date de rattachement. */
+  function countedRows(entries, mapping, forced, mode) {
+    const out = [];
+    for (const e of entries) {
+      if (statusOf(e, forced) !== 'recu') continue;
+      const d = attribDate(e.res.f, mode);
+      if (d) out.push({ f: e.res.f, client: clientOf(e.res.f, mapping), date: d, month: d.slice(0, 7), year: d.slice(0, 4) });
+    }
+    return out;
+  }
+
+  /** Reçus « À vérifier » (un par numéro) dont la date passe le test : par client, et sans compte lisible. */
+  function pendingCounts(entries, mapping, forced, mode, keep) {
+    const byClient = new Map(), seen = new Set(), unassigned = new Set();
+    for (const e of entries) {
+      if (statusOf(e, forced) !== 'verifier') continue;
+      const f = e.res?.f || {};
+      const d = attribDate(f, mode);
+      if (!keep(d)) continue;
+      const id = f.num || `fichier-${e.id}`;
+      if (!f.accId) { unassigned.add(id); continue; }
+      const c = clientOf(f, mapping);
+      const k = `${c}\u0000${id}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      byClient.set(c, (byClient.get(c) || 0) + 1);
+    }
+    return { byClient, unassigned: unassigned.size, total: [...byClient.values()].reduce((a, b) => a + b, 0) };
+  }
+
+  /** Années qui ont des reçus comptés. */
+  const summaryYears = (entries, mapping, forced, mode) => [...new Set(countedRows(entries, mapping, forced, mode).map((r) => r.year))].sort();
+
+  /** Récapitulatif annuel : une ligne par client, une colonne par mois de l'année, totaux. */
+  function annualSummary(entries, mapping, forced, opts) {
+    const year = String(opts.year);
+    const months = Array.from({ length: 12 }, (_, i) => `${year}-${pad2(i + 1)}`);
+    const rows = new Map();
+    const byMonth = new Map(months.map((m) => [m, zeroT()]));
+    const total = zeroT();
+    for (const r of countedRows(entries, mapping, forced, opts.mode)) {
+      if (r.year !== year) continue;
+      if (!rows.has(r.client)) rows.set(r.client, { client: r.client, byMonth: new Map(), total: zeroT() });
+      const row = rows.get(r.client);
+      if (!row.byMonth.has(r.month)) row.byMonth.set(r.month, zeroT());
+      addT(row.byMonth.get(r.month), r.f);
+      addT(row.total, r.f);
+      addT(byMonth.get(r.month), r.f);
+      addT(total, r.f);
+    }
+    const pending = pendingCounts(entries, mapping, forced, opts.mode, (d) => !!d && d.startsWith(year));
+    for (const c of pending.byClient.keys()) if (!rows.has(c)) rows.set(c, { client: c, byMonth: new Map(), total: zeroT() });
+    const list = [...rows.values()].sort((a, b) => byClientName(a.client, b.client));
+    for (const r of list) r.pending = pending.byClient.get(r.client) || 0;
+    return { kind: 'annual', year, months, rows: list, byMonth, total, pending: pending.total, unassignedPending: pending.unassigned };
+  }
+
+  /** Récapitulatif « Depuis le début » : une ligne par client, une colonne par année, premier et dernier mois. */
+  function lifetimeSummary(entries, mapping, forced, opts) {
+    const rows = new Map();
+    const counted = countedRows(entries, mapping, forced, opts.mode);
+    const ys = counted.map((r) => Number(r.year));
+    const years = ys.length ? Array.from({ length: Math.max(...ys) - Math.min(...ys) + 1 }, (_, i) => String(Math.min(...ys) + i)) : [];
+    const byYear = new Map(years.map((y) => [y, zeroT()]));
+    const total = zeroT();
+    for (const r of counted) {
+      if (!rows.has(r.client)) rows.set(r.client, { client: r.client, byYear: new Map(), total: zeroT(), first: r.month, last: r.month });
+      const row = rows.get(r.client);
+      if (!row.byYear.has(r.year)) row.byYear.set(r.year, zeroT());
+      addT(row.byYear.get(r.year), r.f);
+      addT(row.total, r.f);
+      addT(byYear.get(r.year), r.f);
+      addT(total, r.f);
+      if (r.month < row.first) row.first = r.month;
+      if (r.month > row.last) row.last = r.month;
+    }
+    const pending = pendingCounts(entries, mapping, forced, opts.mode, () => true);
+    for (const c of pending.byClient.keys()) if (!rows.has(c)) rows.set(c, { client: c, byYear: new Map(), total: zeroT(), first: null, last: null });
+    const list = [...rows.values()].sort((a, b) => byClientName(a.client, b.client));
+    for (const r of list) r.pending = pending.byClient.get(r.client) || 0;
+    const firsts = list.map((r) => r.first).filter(Boolean).sort(), lasts = list.map((r) => r.last).filter(Boolean).sort();
+    return { kind: 'lifetime', years, rows: list, byYear, total, first: firsts[0] || null, last: lasts.at(-1) || null, pending: pending.total, unassignedPending: pending.unassigned };
+  }
+
+  /** Colonnes d'un récapitulatif : [{ label, get(row) → totaux | null }] et la ligne de totaux. */
+  function summaryColumns(sum) {
+    if (sum.kind === 'annual') return sum.months.map((m) => ({ label: monthLabel(m, true), long: monthLabel(m), get: (r) => r.byMonth.get(m) || null, total: sum.byMonth.get(m) }));
+    return sum.years.map((y) => ({ label: y, long: y, get: (r) => r.byYear.get(y) || null, total: sum.byYear.get(y) }));
+  }
+  const MEASURES = { ttc: 'TTC', ht: 'HT', tva: 'TVA' };
+  const summaryTitle = (sum) => (sum.kind === 'annual' ? `Récapitulatif de l’année ${sum.year}` : 'Récapitulatif depuis le début');
+  const summaryScope = (sum) => (sum.kind === 'annual' ? `année ${sum.year} (du 01/01/${sum.year} au 31/12/${sum.year})` : sum.first ? `du premier reçu (${monthLabel(sum.first)}) au dernier (${monthLabel(sum.last)})` : 'aucun reçu');
+
+  /** Excel d'un récapitulatif : un onglet, trois tableaux (TTC, HT, TVA), nombre de reçus et reçus en attente. */
+  function summaryWorkbook(XLSX, sum, meta) {
+    const cols = summaryColumns(sum);
+    const fmt = '#,##0.00 "€"';
+    const a = [
+      [`${summaryTitle(sum)} — dépenses LinkedIn Ads`],
+      [`Période : ${summaryScope(sum)}`],
+      [`Rattachement des reçus : ${MODE_LABEL[meta.mode] || meta.mode}${meta.filter ? ` ; filtre : ${meta.filter}` : ''}`],
+      [`Édité le ${meta.editedOn}. Doublons comptés une seule fois ; reçus « À vérifier » non comptés (${sum.pending} en attente${sum.unassignedPending ? `, plus ${sum.unassignedPending} sans compte lisible` : ''}).`],
+    ];
+    const moneyRows = [];
+    const extraHead = sum.kind === 'lifetime' ? ['Reçus', 'Premier reçu', 'Dernier reçu', 'À vérifier'] : ['Reçus', 'À vérifier'];
+    const extra = (r) => (sum.kind === 'lifetime' ? [r.total.n, r.first ? monthLabel(r.first) : '', r.last ? monthLabel(r.last) : '', r.pending] : [r.total.n, r.pending]);
+    for (const k of ['ttc', 'ht', 'tva']) {
+      a.push([], [`Montants ${MEASURES[k]}`]);
+      a.push(['Client', ...cols.map((c) => c.long), `Total ${MEASURES[k]}`, ...extraHead]);
+      for (const r of sum.rows) {
+        moneyRows.push(a.length);
+        a.push([r.client, ...cols.map((c) => (c.get(r)?.[k] ?? 0) / 100), r.total[k] / 100, ...extra(r)]);
+      }
+      moneyRows.push(a.length);
+      const totalExtra = sum.kind === 'lifetime' ? [sum.total.n, sum.first ? monthLabel(sum.first) : '', sum.last ? monthLabel(sum.last) : '', sum.pending] : [sum.total.n, sum.pending];
+      a.push(['Total', ...cols.map((c) => (c.total?.[k] ?? 0) / 100), sum.total[k] / 100, ...totalExtra]);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(a);
+    for (const r of moneyRows) for (let c = 1; c <= cols.length + 1; c++) { const cell = ws[XLSX.utils.encode_cell({ r, c })]; if (cell && cell.t === 'n') cell.z = fmt; }
+    ws['!cols'] = [{ wch: 26 }, ...cols.map(() => ({ wch: 13 })), { wch: 14 }, ...extraHead.map(() => ({ wch: 14 }))];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, sum.kind === 'annual' ? `Année ${sum.year}` : 'Depuis le début');
+    return wb;
+  }
+
+  /** PDF d'un récapitulatif (A4 paysage) : montant choisi (TTC, HT ou TVA), une ligne par client, totaux. */
+  function summaryPdf(jsPDF, sum, meta) {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+    const T = pdfText;
+    const key = meta.key || 'ttc';
+    doc.setProperties({ title: T(`${summaryTitle(sum)} – LinkedIn Ads`), creator: 'Reçus LinkedIn Ads' });
+    const M = 12, PW = 297, PH = 210, W = PW - 2 * M, BOTTOM = PH - 16;
+    const ACC = [91, 91, 214], FG = [27, 27, 31], MUTED = [99, 99, 107], SUBTLE = [154, 154, 161], LINE = [221, 220, 216], FILL = [245, 245, 243], WARN = [178, 98, 5];
+    const color = (c) => doc.setTextColor(c[0], c[1], c[2]);
+    const font = (style, size) => { doc.setFont('helvetica', style); doc.setFontSize(size); };
+    const fit = (s, w) => { let t = T(s); if (doc.getTextWidth(t) <= w) return t; while (t.length > 1 && doc.getTextWidth(`${t}…`) > w) t = t.slice(0, -1); return `${t.trimEnd()}…`; };
+    const cols = summaryColumns(sum);
+    // Largeurs : client, périodes, total, puis colonnes d'information.
+    const info = sum.kind === 'lifetime' ? [{ k: 'Reçus', w: 12 }, { k: 'Premier reçu', w: 22 }, { k: 'Dernier reçu', w: 22 }] : [{ k: 'Reçus', w: 11 }];
+    const clientW = sum.kind === 'lifetime' ? 60 : 44;
+    const totalW = 22;
+    const rest = W - clientW - totalW - info.reduce((s, c) => s + c.w, 0);
+    const colW = Math.min(sum.kind === 'lifetime' ? 30 : 17, rest / Math.max(1, cols.length));
+    const layout = [{ k: 'Client', w: clientW }, ...cols.map((c) => ({ k: c.label, w: colW, r: true })), { k: `Total ${MEASURES[key]}`, w: totalW, r: true }, ...info.map((c) => ({ ...c, r: true }))];
+    const tableW = layout.reduce((s, c) => s + c.w, 0);
+    const RH = 6;
+    let y = 16;
+    font('bold', 8.5); color(ACC); doc.text(T('RÉCAPITULATIF DES DÉPENSES LINKEDIN ADS'), M, y);
+    y += 7; font('bold', 15); color(FG); doc.text(T(summaryTitle(sum)), M, y);
+    y += 6; font('normal', 8.8); color(MUTED);
+    const lines = [
+      `Période : ${summaryScope(sum)}. Montants ${MEASURES[key]} en euros.`,
+      `Rattachement des reçus : ${MODE_LABEL[meta.mode] || meta.mode}${meta.filter ? ` ; filtre : ${meta.filter}` : ''}. Édité le ${meta.editedOn}.`,
+    ];
+    for (const l of lines) { doc.text(T(l), M, y); y += 4.4; }
+    font('normal', 8.8);
+    if (sum.pending || sum.unassignedPending) { color(WARN); doc.text(T(`Non comptés : ${plural(sum.pending, 'reçu')} en attente de vérification${sum.unassignedPending ? `, plus ${sum.unassignedPending} sans compte publicitaire lisible` : ''}.`), M, y); }
+    else { color(MUTED); doc.text(T('Aucun reçu en attente de vérification.'), M, y); }
+    y += 6;
+    const row = (cells, opts = {}) => {
+      if (opts.fill) { doc.setFillColor(opts.fill[0], opts.fill[1], opts.fill[2]); doc.rect(M, y, tableW, RH, 'F'); }
+      let x = M;
+      layout.forEach((c, i) => {
+        const v = cells[i];
+        if (v != null && v !== '') {
+          if (c.r) {
+            const size = doc.getFontSize();
+            const t = T(v);
+            while (doc.getTextWidth(t) > c.w - 2 && doc.getFontSize() > 5.5) doc.setFontSize(doc.getFontSize() - 0.25);
+            doc.text(t, x + c.w - 1.2, y + 4.1, { align: 'right' });
+            doc.setFontSize(size);
+          } else doc.text(fit(v, c.w - 2.5), x + 1.2, y + 4.1);
+        }
+        x += c.w;
+      });
+      if (opts.line !== false) { doc.setDrawColor(LINE[0], LINE[1], LINE[2]); doc.setLineWidth(0.15); doc.line(M, y + RH, M + tableW, y + RH); }
+      y += RH;
+    };
+    const head = () => { font('bold', 7.5); color(MUTED); row(layout.map((c) => c.k), { fill: FILL }); };
+    const infoCells = (r) => (sum.kind === 'lifetime' ? [String(r.total.n), r.first ? monthLabel(r.first, true) : '–', r.last ? monthLabel(r.last, true) : '–'] : [String(r.total.n)]);
+    head();
+    if (!sum.rows.length) { font('normal', 9); color(MUTED); doc.text(T('Aucun reçu.'), M + 1.2, y + 4.5); y += RH; }
+    for (const r of sum.rows) {
+      if (y + RH * 2 > BOTTOM) { doc.addPage(); y = 16; head(); }
+      font('normal', 7.6); color(FG);
+      row([r.client + (r.pending ? ` (${r.pending} à vérifier)` : ''), ...cols.map((c) => { const v = c.get(r); return v ? money(v[key]) : '–'; }), money(r.total[key]), ...infoCells(r)]);
+    }
+    if (y + RH * 2 > BOTTOM) { doc.addPage(); y = 16; head(); }
+    doc.setDrawColor(ACC[0], ACC[1], ACC[2]); doc.setLineWidth(0.5); doc.line(M, y, M + tableW, y);
+    y += 0.5;
+    font('bold', 7.8); color(FG);
+    row(['Total', ...cols.map((c) => money(c.total?.[key] ?? 0)), money(sum.total[key]), ...(sum.kind === 'lifetime' ? [String(sum.total.n), sum.first ? monthLabel(sum.first, true) : '–', sum.last ? monthLabel(sum.last, true) : '–'] : [String(sum.total.n)])], { line: false });
+    const pages = doc.getNumberOfPages();
+    for (let i = 1; i <= pages; i++) {
+      doc.setPage(i);
+      font('normal', 7); color(SUBTLE);
+      doc.text(T('D’après les reçus LinkedIn importés. Doublons comptés une seule fois ; reçus « À vérifier » non comptés.'), M, PH - 8);
+      doc.text(T(`Page ${i} / ${pages}`), PW - M, PH - 8, { align: 'right' });
+    }
+    return doc;
+  }
+
+  /* ---------- Google Drive : liste récursive d'un dossier, synchronisation ---------- */
+
+  const DRIVE_FOLDER = 'application/vnd.google-apps.folder';
+  const DRIVE_SHORTCUT = 'application/vnd.google-apps.shortcut';
+  const isDriveId = (id) => typeof id === 'string' && /^[A-Za-z0-9_-]{5,200}$/.test(id);
+
+  /**
+   * PDF d'un dossier et de ses sous-dossiers. listChildren(folderId) → Promise<fichiers Drive (toutes les pages)>.
+   * Raccourcis suivis (dossier ou PDF), dossiers visités une seule fois, même PDF compté une fois.
+   * Renvoie { pdfs: [{ id, name, path, version }], others, folders }.
+   */
+  async function listDrivePdfs(rootId, listChildren, onProgress) {
+    if (!isDriveId(rootId)) throw new Error('Identifiant de dossier Google Drive invalide.');
+    const pdfs = new Map();
+    const seen = new Set([rootId]);
+    const queue = [{ id: rootId, path: '' }];
+    let others = 0, folders = 0;
+    while (queue.length) {
+      const { id, path } = queue.shift();
+      folders++;
+      for (const f of await listChildren(id)) {
+        let target = f.id, mime = f.mimeType;
+        if (mime === DRIVE_SHORTCUT && f.shortcutDetails) { target = f.shortcutDetails.targetId; mime = f.shortcutDetails.targetMimeType; }
+        if (!isDriveId(target)) continue;
+        if (mime === DRIVE_FOLDER) {
+          if (!seen.has(target)) { seen.add(target); queue.push({ id: target, path: `${path}${f.name}/` }); }
+          continue;
+        }
+        const pdf = mime === 'application/pdf' || (/\.pdf$/i.test(f.name || '') && !String(mime).startsWith('application/vnd.google-apps'));
+        if (!pdf) { others++; continue; }
+        if (!pdfs.has(target)) pdfs.set(target, { id: target, name: f.name, path: path + f.name, version: f.md5Checksum || f.modifiedTime || '' });
+      }
+      if (onProgress) onProgress({ folders, pdfs: pdfs.size });
+    }
+    return { pdfs: [...pdfs.values()].sort((a, b) => a.path.localeCompare(b.path, 'fr')), others, folders };
+  }
+
+  /** Synchronisation : known = Map(id Drive → version déjà importée). Nouveaux, modifiés (autre version), inchangés. */
+  function planSync(pdfs, known) {
+    const add = [], changed = [], same = [];
+    for (const p of pdfs) {
+      if (!known.has(p.id)) add.push(p);
+      else if (p.version && known.get(p.id) && p.version !== known.get(p.id)) changed.push(p);
+      else same.push(p);
+    }
+    return { add, changed, same };
+  }
+
+  return { norm, amount, isoDate, lines, headerValue, parseReceipt, markDuplicates, canForce, statusOf, monthOf, clientOf, UNMAPPED, safeName, fileNameFor, buildReport, monthRange, monthLabel, zipPlan, buildWorkbook, mappingToJson, mappingFromJson,
+    attribDate, periodRange, buildStatements, statementPdf, statementWorkbook, sheetNames, pdfText, money, frDate, MODE_LABEL,
+    filterEntries, filterOptions, summaryYears, annualSummary, lifetimeSummary, summaryColumns, summaryWorkbook, summaryPdf, listDrivePdfs, planSync, isDriveId };
+})();
+/* NOYAU-FIN */
+</script>
+
+<script>
+(() => {
+  const N = Noyau;
+  const $ = (s) => document.querySelector(s);
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const money = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' });
+  const eur = (c) => (c == null ? '–' : money.format(c / 100));
+  const MAP_KEY = 'recus-linkedin.correspondance.v1';
+  const THEME_KEY = 'recus-linkedin.theme';
+
+  const libsOk = typeof pdfjsLib !== 'undefined' && typeof JSZip !== 'undefined' && typeof XLSX !== 'undefined' && typeof window.jspdf !== 'undefined';
+  if (!libsOk) {
+    $('#libError').classList.remove('hidden');
+    document.querySelectorAll('#secImport button, #drivePanel button').forEach((b) => (b.disabled = true));
+  } else {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  /* ---------- État ---------- */
+  const state = {
+    entries: [], // { id, file, name, path, res, dupOf, conflictWith, reasonsText }
+    mapping: loadMapping(),
+    forced: new Set(),
+    mode: 'periode',
+    amount: 'ttc',
+    view: 'chart',
+    from: '',
+    to: '',
+    busy: false,
+    gf: { client: '', month: '' }, // filtres du haut de page
+  };
+  let nextId = 1;
+
+  function loadMapping() {
+    try { return JSON.parse(localStorage.getItem(MAP_KEY) || '{}') || {}; } catch { return {}; }
+  }
+  function saveMapping() {
+    try { localStorage.setItem(MAP_KEY, JSON.stringify(state.mapping)); } catch { /* stockage indisponible : l'export JSON reste possible */ }
+  }
+
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3200);
+  }
+
+  /* ---------- Thème ---------- */
+  function applyTheme(choice) {
+    const dark = choice === 'dark' || (choice === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+    document.querySelectorAll('[data-theme-btn]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.themeBtn === choice)));
+    try { localStorage.setItem(THEME_KEY, choice); } catch {}
+    if (state.entries.length) renderChart();
+  }
+  const themeChoice = () => { try { return localStorage.getItem(THEME_KEY) || 'auto'; } catch { return 'auto'; } };
+  document.querySelectorAll('[data-theme-btn]').forEach((b) => b.addEventListener('click', () => applyTheme(b.dataset.themeBtn)));
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(themeChoice()));
+  applyTheme(themeChoice());
+
+  /* ---------- Import ---------- */
+  const drop = $('#drop');
+  ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); if (ev === 'dragleave' && drop.contains(e.relatedTarget)) return; drop.classList.remove('over'); }));
+  drop.addEventListener('drop', async (e) => {
+    if (!libsOk || state.busy) return;
+    const items = [...(e.dataTransfer.items || [])];
+    const files = [];
+    const entries = items.map((i) => (i.webkitGetAsEntry ? i.webkitGetAsEntry() : null)).filter(Boolean);
+    if (entries.length) for (const en of entries) await walk(en, '', files);
+    else for (const f of e.dataTransfer.files) files.push({ file: f, path: f.name });
+    importFiles(files);
+  });
+  // Évite d'ouvrir le PDF dans l'onglet si on le lâche à côté de la zone.
+  window.addEventListener('dragover', (e) => e.preventDefault());
+  window.addEventListener('drop', (e) => e.preventDefault());
+
+  async function walk(entry, prefix, out) {
+    if (entry.isFile) {
+      const file = await new Promise((res, rej) => entry.file(res, rej));
+      out.push({ file, path: prefix + file.name });
+    } else if (entry.isDirectory) {
+      const reader = entry.createReader();
+      for (;;) {
+        const batch = await new Promise((res, rej) => reader.readEntries(res, rej));
+        if (!batch.length) break;
+        for (const child of batch) await walk(child, `${prefix}${entry.name}/`, out);
+      }
+    }
+  }
+  $('#pickFiles').addEventListener('click', () => $('#inFiles').click());
+  $('#pickDir').addEventListener('click', () => $('#inDir').click());
+  $('#inFiles').addEventListener('change', (e) => { importFiles([...e.target.files].map((f) => ({ file: f, path: f.name }))); e.target.value = ''; });
+  $('#inDir').addEventListener('change', (e) => { importFiles([...e.target.files].map((f) => ({ file: f, path: f.webkitRelativePath || f.name }))); e.target.value = ''; });
+  $('#clearAll').addEventListener('click', () => {
+    state.entries = [];
+    state.forced.clear();
+    state.from = state.to = '';
+    rel.init = false;
+    render();
+    toast('Reçus retirés de la page (la correspondance des comptes est conservée).');
+  });
+
+  async function readPdf(buf) {
+    const doc = await pdfjsLib.getDocument({ data: buf, isEvalSupported: false, disableFontFace: true, useSystemFonts: false, stopAtErrors: false }).promise;
+    try {
+      const pages = [];
+      for (let p = 1; p <= doc.numPages; p++) {
+        const page = await doc.getPage(p);
+        const tc = await page.getTextContent();
+        pages.push({ items: tc.items.filter((i) => typeof i.str === 'string' && i.str.trim()).map((i) => ({ s: i.str, x: i.transform[4], y: i.transform[5] })) });
+        page.cleanup();
+      }
+      return pages;
+    } finally {
+      doc.destroy();
+    }
+  }
+
+  /**
+   * Lit une liste de fichiers : { file, path } (dépôt, sélection) ou { load(), path, name, driveId, version }
+   * (Google Drive : téléchargé dans le navigateur, quatre fichiers d'avance). Chaque fichier devient une entrée ;
+   * rien n'est ignoré en silence. Session Google expirée : arrêt, les fichiers restants seront lus à la synchronisation.
+   */
+  async function importFiles(list, opts = {}) {
+    if (!list.length || state.busy) return;
+    state.busy = true;
+    const bar = opts.bar || $('#progress'), txt = opts.text || $('#progressText');
+    bar.classList.remove('hidden');
+    const AHEAD = 4;
+    const loads = new Map();
+    const start = (k) => { if (k < list.length && list[k].load && !loads.has(k)) loads.set(k, list[k].load().then((file) => ({ file }), (err) => ({ err }))); };
+    for (let k = 0; k < AHEAD; k++) start(k);
+    let read = 0, stopped = null;
+    try {
+      for (let i = 0; i < list.length; i++) {
+        const item = list[i];
+        start(i + AHEAD);
+        bar.firstElementChild.style.width = `${((i + 1) / list.length) * 100}%`;
+        txt.textContent = `${item.load ? 'Téléchargement et lecture' : 'Lecture'} ${i + 1} / ${list.length} : ${item.path}`;
+        let file = item.file || null, loadError = null;
+        if (!file) {
+          const r = await loads.get(i);
+          loads.delete(i);
+          file = r.file || null;
+          loadError = r.err || null;
+          if (loadError && loadError.name === 'DriveAuthError') { stopped = loadError.message; break; }
+        }
+        const name = item.name || (file && file.name) || item.path.split('/').pop();
+        const entry = { id: nextId++, file, name, path: item.path, res: null, driveId: item.driveId || null, version: item.version || null };
+        if (loadError) {
+          entry.res = { kind: 'verifier', reasons: [`Téléchargement impossible depuis Google Drive (${loadError.message || loadError}).`], f: {} };
+        } else if (!(/\.pdf$/i.test(name) || file.type === 'application/pdf')) {
+          entry.res = { kind: 'autre', reasons: ['Ce fichier n’est pas un PDF.'], f: {} };
+        } else {
+          try {
+            const buf = new Uint8Array(await file.arrayBuffer());
+            entry.res = N.parseReceipt(await readPdf(buf));
+          } catch (err) {
+            const msg = err && err.name === 'PasswordException' ? 'PDF protégé par un mot de passe.' : `PDF illisible (${err && err.message ? err.message : err}).`;
+            entry.res = { kind: 'verifier', reasons: [msg], f: {} };
+          }
+        }
+        state.entries.push(entry);
+        read++;
+        if (i % 10 === 9) await new Promise((r) => setTimeout(r));
+      }
+    } finally {
+      bar.classList.add('hidden');
+      state.busy = false;
+    }
+    txt.textContent = stopped
+      ? `${stopped} ${read} fichier${read > 1 ? 's' : ''} lu${read > 1 ? 's' : ''} sur ${list.length} ; les autres seront lus à la prochaine synchronisation.`
+      : opts.doneText || `${list.length} fichier${list.length > 1 ? 's' : ''} lu${list.length > 1 ? 's' : ''}.`;
+    if (stopped) toast(stopped);
+    // Nouveaux comptes : ajoutés à la correspondance (client vide = à rattacher).
+    for (const e of state.entries) {
+      const f = e.res?.f;
+      if (f?.accId && /^\d+$/.test(f.accId)) {
+        if (!state.mapping[f.accId]) state.mapping[f.accId] = { name: f.accName || '', client: '' };
+        else if (!state.mapping[f.accId].name && f.accName) state.mapping[f.accId].name = f.accName;
+      }
+    }
+    saveMapping();
+    state.from = state.to = '';
+    rel.init = false;
+    render();
+  }
+
+  /* ---------- Calculs partagés ---------- */
+  function prepare() {
+    N.markDuplicates(state.entries);
+    const byId = new Map(state.entries.map((e) => [e.id, e]));
+    for (const e of state.entries) {
+      const reasons = [...(e.res?.reasons || [])];
+      if (e.conflictWith) reasons.unshift(`Même n° de reçu que « ${byId.get(e.conflictWith)?.path} », mais contenu différent.`);
+      e.reasonsText = reasons.join(' ');
+      e.dupOfName = e.dupOf ? byId.get(e.dupOf)?.path : '';
+    }
+    return byId;
+  }
+  function allMonths() {
+    const ms = new Set();
+    for (const e of view()) if (N.statusOf(e, state.forced) === 'recu') { const m = N.monthOf(e.res.f, state.mode); if (m) ms.add(m); }
+    return [...ms].sort();
+  }
+  /** Entrées retenues par les filtres du haut de page (client, mois) : toutes si aucun filtre. */
+  const view = () => N.filterEntries(state.entries, state.mapping, { client: state.gf.client, month: state.gf.month, mode: state.mode });
+  const report = () => N.buildReport(view(), state.mapping, state.forced, { mode: state.mode, from: state.from, to: state.to });
+
+  /** Couleurs : suivent le client (rang sur l'ensemble des reçus, pas sur la période), 7 clients + « Autres ». */
+  function colorMap() {
+    const all = N.buildReport(state.entries, state.mapping, state.forced, { mode: state.mode, from: '', to: '' });
+    const ranked = [...all.byClient.entries()].sort((a, b) => b[1].ttc - a[1].ttc || a[0].localeCompare(b[0], 'fr')).map(([c]) => c);
+    const named = ranked.filter((c) => c !== N.UNMAPPED);
+    const map = new Map();
+    const max = ranked.length > 8 ? 7 : 8;
+    named.slice(0, ranked.includes(N.UNMAPPED) ? max - 1 : max).forEach((c, i) => map.set(c, `var(--s${i + 1})`));
+    return { colorOf: (c) => map.get(c) || 'var(--s-other)', grouped: (c) => (map.has(c) || c === N.UNMAPPED ? c : 'Autres clients') };
+  }
+
+  /* ---------- Rendu ---------- */
+  function render() {
+    prepare();
+    const has = state.entries.length > 0;
+    $('#clearAll').disabled = !has;
+    renderFilters();
+    renderImportKpis();
+    renderMapping();
+    const months = allMonths();
+    $('#from').min = $('#to').min = months[0] || '';
+    $('#from').max = $('#to').max = months.at(-1) || '';
+    if (!state.from && months.length) state.from = months[0];
+    if (!state.to && months.length) state.to = months.at(-1);
+    if (state.gf.month) state.from = state.to = state.gf.month;
+    $('#from').disabled = $('#to').disabled = $('#allPeriod').disabled = !!state.gf.month;
+    $('#from').value = state.from;
+    $('#to').value = state.to;
+    renderStats();
+    renderChecks();
+    renderReleves();
+    renderRecaps();
+    renderExport();
+    renderDrive();
+  }
+
+  function renderImportKpis() {
+    const counts = { recu: 0, verifier: 0, doublon: 0, autre: 0 };
+    for (const e of state.entries) counts[N.statusOf(e, state.forced)]++;
+    const k = (l, v, s, cls = '') => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="v num">${v}</div><div class="s">${s}</div></div>`;
+    $('#importKpis').innerHTML = !state.entries.length ? '' :
+      k('Reçus comptés', counts.recu, 'lus et contrôlés') +
+      k('À vérifier', counts.verifier, counts.verifier ? 'non comptés : voir l’étape 4' : 'aucun', counts.verifier ? 'warn' : '') +
+      k('Doublons écartés', counts.doublon, 'même n° de reçu, comptés une fois') +
+      k('Pas des reçus LinkedIn', counts.autre, counts.autre ? 'listés à l’étape 4' : 'aucun');
+  }
+
+  function renderMapping() {
+    const stats = new Map();
+    for (const e of state.entries) {
+      const f = e.res?.f;
+      if (!f?.accId || N.statusOf(e, state.forced) !== 'recu') continue;
+      const s = stats.get(f.accId) || { n: 0, ttc: 0, entity: f.entity };
+      s.n++; s.ttc += f.ttc; stats.set(f.accId, s);
+    }
+    const ids = Object.keys(state.mapping);
+    const unknown = ids.filter((id) => !(state.mapping[id].client || '').trim() && stats.has(id));
+    $('#mapInfo').innerHTML = !ids.length ? '' : unknown.length
+      ? `<span class="badge warn">${unknown.length} compte${unknown.length > 1 ? 's' : ''} à rattacher</span>`
+      : `<span class="badge ok">Tous les comptes des reçus sont rattachés</span>`;
+    const clients = [...new Set(ids.map((id) => (state.mapping[id].client || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'fr'));
+    $('#clientNames').innerHTML = clients.map((c) => `<option value="${esc(c)}">`).join('');
+    if (!ids.length) {
+      $('#mapTable').innerHTML = `<div class="empty">Les comptes publicitaires apparaîtront ici après l'import des reçus, ou en important une correspondance enregistrée.</div>`;
+      return;
+    }
+    const order = ids.sort((a, b) => Number(unknown.includes(b)) - Number(unknown.includes(a)) || (stats.get(b)?.ttc ?? -1) - (stats.get(a)?.ttc ?? -1) || (state.mapping[a].name || '').localeCompare(state.mapping[b].name || '', 'fr'));
+    $('#mapTable').innerHTML = `<div class="tbl"><table>
+      <thead><tr><th>Compte publicitaire</th><th>ID du compte</th><th>Entité facturée</th><th class="n">Reçus</th><th class="n">Total TTC</th><th style="width:32%">Client</th></tr></thead>
+      <tbody>${order.map((id) => {
+        const m = state.mapping[id], s = stats.get(id);
+        const todo = unknown.includes(id);
+        return `<tr class="${todo ? 'acc-unknown' : ''}">
+          <td>${esc(m.name || '–')} ${todo ? '<span class="badge warn">À rattacher</span>' : ''}</td>
+          <td class="mono">${esc(id)}</td>
+          <td class="muted">${esc(s?.entity || '–')}</td>
+          <td class="n">${s ? s.n : '<span class="muted">aucun reçu importé</span>'}</td>
+          <td class="n">${s ? eur(s.ttc) : '–'}</td>
+          <td><input type="text" class="client-input" list="clientNames" data-acc="${esc(id)}" value="${esc(m.client || '')}" placeholder="Nom du client…" aria-label="Client du compte ${esc(m.name || id)}"></td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+    document.querySelectorAll('.client-input').forEach((inp) => {
+      inp.addEventListener('change', () => {
+        state.mapping[inp.dataset.acc].client = inp.value.trim();
+        saveMapping();
+        render();
+      });
+    });
+  }
+
+  $('#mapExport').addEventListener('click', () => {
+    if (!Object.keys(state.mapping).length) return toast('Aucun compte à exporter pour l’instant.');
+    const json = JSON.stringify(N.mappingToJson(state.mapping), null, 2);
+    download(new Blob([json], { type: 'application/json' }), `Correspondance comptes LinkedIn ${new Date().toISOString().slice(0, 10)}.json`);
+  });
+  $('#mapImport').addEventListener('click', () => $('#inMap').click());
+  $('#inMap').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      const incoming = N.mappingFromJson(JSON.parse(await file.text()));
+      let added = 0, changed = 0;
+      for (const [id, v] of Object.entries(incoming)) {
+        const cur = state.mapping[id];
+        if (!cur) added++;
+        else if ((cur.client || '') !== v.client) changed++;
+        state.mapping[id] = { name: v.name || cur?.name || '', client: v.client };
+      }
+      saveMapping();
+      render();
+      toast(`Correspondance importée : ${Object.keys(incoming).length} comptes (${added} nouveaux, ${changed} modifiés).`);
+    } catch (err) {
+      toast(err.message || 'Fichier illisible.');
+    }
+  });
+
+  function renderStats() {
+    const has = view().some((e) => N.statusOf(e, state.forced) === 'recu');
+    if (!has) {
+      $('#statKpis').innerHTML = '';
+      $('#statWarn').innerHTML = '';
+      $('#clientTotals').innerHTML = `<div class="empty">Aucun reçu compté pour l'instant.</div>`;
+      $('#chartBox').innerHTML = '';
+      $('#clientDetails').innerHTML = '';
+      return;
+    }
+    const rep = report();
+    const key = state.amount;
+    const K = key.toUpperCase();
+    const k = (l, v, s, cls = '') => `<div class="kpi ${cls}"><div class="l">${l}</div><div class="v num">${v}</div><div class="s">${s}</div></div>`;
+    const clientsN = [...rep.byClient.keys()].filter((c) => c !== N.UNMAPPED).length;
+    $('#statKpis').innerHTML =
+      k(`Total payé (${K})`, eur(rep.total[key]), key === 'ttc' ? `dont TVA ${eur(rep.total.tva)}` : `TTC ${eur(rep.total.ttc)}`) +
+      k('Reçus comptés', rep.rows.length, rep.months.length ? `${N.monthLabel(rep.months[0])} → ${N.monthLabel(rep.months.at(-1))}` : '') +
+      k('Clients', clientsN, rep.byClient.has(N.UNMAPPED) ? `+ ${eur(rep.byClient.get(N.UNMAPPED)[key])} non rattachés` : 'tous les comptes rattachés', rep.byClient.has(N.UNMAPPED) ? 'warn' : '') +
+      k('À vérifier', rep.verify.length, rep.verify.length ? 'non comptés dans ces totaux' : 'aucun', rep.verify.length ? 'warn' : '');
+    const warns = [];
+    if (rep.verify.length) warns.push(`${rep.verify.length} reçu${rep.verify.length > 1 ? 's' : ''} « À vérifier » ne ${rep.verify.length > 1 ? 'sont' : 'est'} pas compté${rep.verify.length > 1 ? 's' : ''} dans ces totaux (étape 4).`);
+    if (rep.byClient.has(N.UNMAPPED)) warns.push(`Des reçus viennent de comptes non rattachés à un client : ils sont regroupés sous « ${N.UNMAPPED} » (étape 2).`);
+    $('#statWarn').innerHTML = warns.map((w) => `<div class="notice warn" style="margin-top:6px"><span class="ic">⚠</span><div>${esc(w)}</div></div>`).join('');
+
+    // Totaux par client.
+    const cm = colorMap();
+    const clients = [...rep.byClient.entries()].sort((a, b) => b[1][key] - a[1][key]);
+    $('#clientTotals').innerHTML = `<div class="tbl"><table>
+      <thead><tr><th>Client</th><th class="n">Reçus</th><th class="n">HT</th><th class="n">TVA</th><th class="n">TTC</th><th class="n">Part (${K})</th></tr></thead>
+      <tbody>${clients.map(([c, v]) => `<tr>
+        <td><span class="row" style="gap:8px"><span class="sw" style="background:${cm.colorOf(c)}"></span>${esc(c)}${c === N.UNMAPPED ? ' <span class="badge warn">à rattacher</span>' : ''}</span></td>
+        <td class="n">${v.n}</td><td class="n">${eur(v.ht)}</td><td class="n">${eur(v.tva)}</td><td class="n"><strong>${eur(v.ttc)}</strong></td>
+        <td class="n muted">${rep.total[key] ? `${((v[key] / rep.total[key]) * 100).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} %` : '–'}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Total</td><td class="n">${rep.total.n}</td><td class="n">${eur(rep.total.ht)}</td><td class="n">${eur(rep.total.tva)}</td><td class="n">${eur(rep.total.ttc)}</td><td></td></tr></tfoot>
+    </table></div>`;
+
+    renderChart(rep);
+
+    // Détail par client.
+    const byClient = new Map();
+    for (const r of rep.rows) { if (!byClient.has(r.client)) byClient.set(r.client, []); byClient.get(r.client).push(r); }
+    $('#clientDetails').innerHTML = clients.map(([c, v]) => `<details class="client">
+      <summary><span class="sw" style="background:${cm.colorOf(c)}"></span><strong>${esc(c)}</strong><span class="muted small">${v.n} reçu${v.n > 1 ? 's' : ''}</span><span style="margin-left:auto" class="num">${eur(v[key])} ${K}</span></summary>
+      <div class="tbl"><table>
+        <thead><tr><th>Mois</th><th>Date de transaction</th><th>Période</th><th>N° de reçu</th><th>Compte</th><th class="n">HT</th><th class="n">TVA</th><th class="n">TTC</th><th>Paiement</th><th>Fichier</th></tr></thead>
+        <tbody>${byClient.get(c).map((r) => `<tr>
+          <td>${N.monthLabel(r.month, true)}</td><td>${fr(r.f.dateTx)}</td><td class="muted">${fr(r.f.periodStart)} → ${fr(r.f.periodEnd)}</td>
+          <td class="mono">${esc(r.f.num)}${r.forced ? ' <span class="badge warn" title="Compté à la main malgré un contrôle">à la main</span>' : ''}</td>
+          <td>${esc(r.f.accName)}</td><td class="n">${eur(r.f.ht)}</td><td class="n">${eur(r.f.tva)}${r.f.reverseCharge ? ' <span class="badge" title="TVA autoliquidée">autoliq.</span>' : ''}</td><td class="n">${eur(r.f.ttc)}</td>
+          <td class="muted">${esc(r.f.payment)}</td><td><a class="file" data-open="${r.e.id}" title="${esc(r.e.path)}">Ouvrir</a></td></tr>`).join('')}</tbody>
+      </table></div></details>`).join('');
+  }
+  const fr = (iso) => (iso ? iso.split('-').reverse().join('/') : '–');
+
+  document.addEventListener('click', (e) => {
+    const a = e.target.closest('[data-open]');
+    if (!a) return;
+    const entry = state.entries.find((x) => x.id === Number(a.dataset.open));
+    if (!entry) return;
+    if (!entry.file) return toast('Fichier non disponible : il n’a pas pu être téléchargé.');
+    const url = URL.createObjectURL(entry.file);
+    window.open(url, '_blank', 'noopener');
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  });
+
+  /* ---------- Graphique : évolution mensuelle par client (courbes SVG) ---------- */
+  function renderChart(rep = report()) {
+    const box = $('#chartBox');
+    if (!rep.rows.length) { box.innerHTML = `<div class="empty">Aucun reçu sur cette période.</div>`; return; }
+    const key = state.amount;
+    const cm = colorMap();
+    // Séries : clients (regroupés au-delà de 8), dans l'ordre des totaux de la période.
+    const series = new Map();
+    for (const [k, v] of rep.byClientMonth) {
+      const [client, month] = k.split('\u0000');
+      const name = cm.grouped(client);
+      if (!series.has(name)) series.set(name, { name, color: name === 'Autres clients' ? 'var(--s-other)' : cm.colorOf(client), values: new Map(), total: 0 });
+      const s = series.get(name);
+      s.values.set(month, (s.values.get(month) || 0) + v[key]);
+      s.total += v[key];
+    }
+    const list = [...series.values()].sort((a, b) => b.total - a.total);
+    const months = rep.months;
+
+    if (state.view === 'table') {
+      box.innerHTML = `<div class="tbl"><table><thead><tr><th>Client</th>${months.map((m) => `<th class="n">${N.monthLabel(m, true)}</th>`).join('')}<th class="n">Total</th></tr></thead>
+        <tbody>${list.map((s) => `<tr><td><span class="row" style="gap:8px"><span class="sw" style="background:${s.color}"></span>${esc(s.name)}</span></td>${months.map((m) => `<td class="n">${s.values.get(m) ? eur(s.values.get(m)) : '<span class="muted">–</span>'}</td>`).join('')}<td class="n"><strong>${eur(s.total)}</strong></td></tr>`).join('')}</tbody>
+        <tfoot><tr><td>Total</td>${months.map((m) => `<td class="n">${eur(rep.byMonth.get(m)?.[key] ?? 0)}</td>`).join('')}<td class="n">${eur(rep.total[key])}</td></tr></tfoot></table></div>
+        <div class="small muted" style="margin-top:6px">Montants ${key.toUpperCase()} ; « – » : aucun reçu ce mois-là.</div>`;
+      return;
+    }
+
+    const W = Math.max(520, box.clientWidth || 900), H = 300;
+    const m = { l: 64, r: list.length <= 4 ? 120 : 16, t: 12, b: 30 };
+    const iw = W - m.l - m.r, ih = H - m.t - m.b;
+    const maxV = Math.max(1, ...list.flatMap((s) => months.map((mo) => s.values.get(mo) || 0)));
+    const step = niceStep(maxV / 4);
+    const top = Math.ceil(maxV / step) * step;
+    const x = (i) => m.l + (months.length === 1 ? iw / 2 : (i / (months.length - 1)) * iw);
+    const y = (v) => m.t + ih - (v / top) * ih;
+    const ticks = [];
+    for (let v = 0; v <= top + 1; v += step) ticks.push(v);
+    const every = Math.ceil(months.length / Math.max(1, Math.floor(iw / 64)));
+    const short = (c) => (c >= 100000 ? `${Math.round(c / 100000).toLocaleString('fr-FR')} k€` : `${Math.round(c / 100).toLocaleString('fr-FR')} €`);
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution mensuelle des montants ${key.toUpperCase()} par client">`;
+    for (const v of ticks) svg += `<line class="grid" x1="${m.l}" x2="${m.l + iw}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${short(v)}</text>`;
+    svg += `<line class="axis" x1="${m.l}" x2="${m.l + iw}" y1="${y(0)}" y2="${y(0)}"/>`;
+    months.forEach((mo, i) => { if (i % every === 0 || i === months.length - 1) svg += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle">${N.monthLabel(mo, true)}</text>`; });
+    // Courbes (2 px), de la plus petite à la plus grande pour que la principale reste devant.
+    for (const s of [...list].reverse()) {
+      const pts = months.map((mo, i) => `${x(i).toFixed(1)},${y(s.values.get(mo) || 0).toFixed(1)}`);
+      svg += months.length === 1
+        ? `<circle cx="${x(0)}" cy="${y(s.values.get(months[0]) || 0)}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`
+        : `<polyline points="${pts.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    }
+    // Étiquettes directes en bout de courbe (4 séries au plus), écartées pour ne pas se chevaucher.
+    if (list.length <= 4) {
+      const labels = list.map((s) => ({ s, y: y(s.values.get(months.at(-1)) || 0) })).sort((a, b) => a.y - b.y);
+      for (let i = 1; i < labels.length; i++) if (labels[i].y - labels[i - 1].y < 14) labels[i].y = labels[i - 1].y + 14;
+      for (const l of labels) svg += `<text x="${x(months.length - 1) + 8}" y="${l.y + 4}" style="fill:var(--fg)">${esc(trunc(l.s.name, 16))}</text>`;
+    }
+    svg += `<line id="cross" class="axis" x1="0" x2="0" y1="${m.t}" y2="${m.t + ih}" style="display:none"/><g id="dots"></g>`;
+    svg += `<rect id="hit" x="${m.l - 10}" y="${m.t}" width="${iw + 20}" height="${ih}" fill="transparent"/></svg>`;
+    box.innerHTML = `<div class="legend">${list.map((s) => `<span><span class="sw" style="background:${s.color}"></span>${esc(s.name)}</span>`).join('')}</div><div class="chart">${svg}<div class="tip hidden"></div></div>`;
+
+    const chart = box.querySelector('.chart'), svgEl = chart.querySelector('svg'), tip = chart.querySelector('.tip');
+    const cross = svgEl.querySelector('#cross'), dots = svgEl.querySelector('#dots');
+    const hit = svgEl.querySelector('#hit');
+    const show = (ev) => {
+      const pt = svgEl.createSVGPoint();
+      pt.x = ev.clientX; pt.y = ev.clientY;
+      const p = pt.matrixTransform(svgEl.getScreenCTM().inverse());
+      const i = months.length === 1 ? 0 : Math.max(0, Math.min(months.length - 1, Math.round(((p.x - m.l) / iw) * (months.length - 1))));
+      const mo = months[i];
+      cross.setAttribute('x1', x(i)); cross.setAttribute('x2', x(i)); cross.style.display = '';
+      dots.innerHTML = list.map((s) => `<circle cx="${x(i)}" cy="${y(s.values.get(mo) || 0)}" r="4" fill="${s.color}" stroke="var(--surface)" stroke-width="2"/>`).join('');
+      const rows = [...list].sort((a, b) => (b.values.get(mo) || 0) - (a.values.get(mo) || 0));
+      tip.innerHTML = `<div class="t">${N.monthLabel(mo)}</div>${rows.map((s) => `<div class="r"><span class="sw" style="background:${s.color}"></span>${esc(s.name)}<span class="v">${s.values.get(mo) ? eur(s.values.get(mo)) : '–'}</span></div>`).join('')}<div class="r tot">Total ${key.toUpperCase()}<span class="v">${eur(rep.byMonth.get(mo)?.[key] ?? 0)}</span></div>`;
+      tip.classList.remove('hidden');
+      const rect = chart.getBoundingClientRect();
+      const px = (x(i) / W) * rect.width;
+      const left = px + 14 + tip.offsetWidth > rect.width ? px - 14 - tip.offsetWidth : px + 14;
+      tip.style.left = `${Math.max(0, left)}px`;
+      tip.style.top = `${Math.max(0, ev.clientY - rect.top - 20)}px`;
+    };
+    hit.addEventListener('mousemove', show);
+    hit.addEventListener('mouseleave', () => { tip.classList.add('hidden'); cross.style.display = 'none'; dots.innerHTML = ''; });
+  }
+  const trunc = (s, n) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
+  function niceStep(raw) {
+    const p = Math.pow(10, Math.floor(Math.log10(Math.max(raw, 1))));
+    const r = raw / p;
+    return (r <= 1 ? 1 : r <= 2 ? 2 : r <= 2.5 ? 2.5 : r <= 5 ? 5 : 10) * p;
+  }
+  let resizeTimer;
+  new ResizeObserver(() => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => state.entries.length && state.view === 'chart' && renderChart(), 120); }).observe($('#chartBox'));
+
+  /* ---------- Contrôles ---------- */
+  function renderChecks() {
+    const byId = new Map(state.entries.map((e) => [e.id, e]));
+    const verify = [], dups = [], others = [], forced = [];
+    for (const e of state.entries) {
+      const st = N.statusOf(e, state.forced);
+      if (st === 'verifier') verify.push(e);
+      else if (st === 'doublon') dups.push(e);
+      else if (st === 'autre') others.push(e);
+      else if (e.res.kind === 'verifier') forced.push(e);
+    }
+    if (!state.entries.length) { $('#checks').innerHTML = `<div class="empty">Rien à contrôler pour l'instant.</div>`; return; }
+    const sect = (title, badge, rows, body) => `<h3 style="font-size:13px;margin:14px 0 8px" class="row">${title} ${badge}</h3>${rows.length ? body : '<div class="small muted">Aucun.</div>'}`;
+    let html = '';
+    html += sect('À vérifier', `<span class="badge ${verify.length ? 'warn' : 'ok'}">${verify.length}</span>`, verify, `<div class="tbl"><table>
+      <thead><tr><th>Fichier</th><th>N° de reçu</th><th>Raison</th><th></th></tr></thead>
+      <tbody>${verify.map((e) => `<tr><td><a class="file" data-open="${e.id}">${esc(e.path)}</a></td><td class="mono">${esc(e.res?.f?.num || '–')}</td>
+        <td class="reason">${esc(e.reasonsText)}</td>
+        <td class="n">${!e.conflictWith && N.canForce(e.res.f) ? `<button data-force="${e.id}" title="Vous avez vérifié le reçu : il est compté avec les montants lus">Compter quand même</button>` : '<span class="small muted">à corriger à la source</span>'}</td></tr>`).join('')}</tbody></table></div>`);
+    if (forced.length) html += sect('Comptés à la main', `<span class="badge acc">${forced.length}</span>`, forced, `<div class="tbl"><table><tbody>${forced.map((e) => `<tr><td><a class="file" data-open="${e.id}">${esc(e.path)}</a></td><td class="reason">${esc(e.reasonsText)}</td><td class="n"><button class="ghost" data-unforce="${e.id}">Ne plus compter</button></td></tr>`).join('')}</tbody></table></div>`);
+    html += sect('Doublons écartés', `<span class="badge">${dups.length}</span>`, dups, `<div class="tbl"><table>
+      <thead><tr><th>Fichier écarté</th><th>N° de reçu</th><th>Compté une fois avec</th></tr></thead>
+      <tbody>${dups.map((e) => `<tr><td>${esc(e.path)}</td><td class="mono">${esc(e.res.f.num)}</td><td class="muted">${esc(byId.get(e.dupOf)?.path)}</td></tr>`).join('')}</tbody></table></div>`);
+    html += sect('Pas des reçus LinkedIn', `<span class="badge">${others.length}</span>`, others, `<div class="tbl"><table>
+      <thead><tr><th>Fichier</th><th>Raison</th></tr></thead>
+      <tbody>${others.map((e) => `<tr><td>${esc(e.path)}</td><td class="reason">${esc(e.reasonsText)}</td></tr>`).join('')}</tbody></table></div>`);
+    $('#checks').innerHTML = html;
+  }
+  document.addEventListener('click', (e) => {
+    const f = e.target.closest('[data-force]'), u = e.target.closest('[data-unforce]');
+    if (f) { state.forced.add(Number(f.dataset.force)); render(); }
+    if (u) { state.forced.delete(Number(u.dataset.unforce)); render(); }
+  });
+
+  /* ---------- Filtres ---------- */
+  $('#from').addEventListener('change', (e) => { state.from = e.target.value; if (state.to && state.from > state.to) state.to = state.from; render(); });
+  $('#to').addEventListener('change', (e) => { state.to = e.target.value; if (state.from && state.to < state.from) state.from = state.to; render(); });
+  $('#allPeriod').addEventListener('click', () => { state.from = state.to = ''; render(); });
+  function setMode(mode) {
+    state.mode = mode;
+    document.querySelectorAll('[data-mode]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.mode === mode)));
+    document.querySelectorAll('[data-rmode]').forEach((x) => x.setAttribute('aria-pressed', String(x.dataset.rmode === mode)));
+    const ms = allMonths();
+    if (state.from && ms.length && state.from < ms[0]) state.from = ms[0];
+    if (state.to && ms.length && state.to > ms.at(-1)) state.to = ms.at(-1);
+    rel.init = false;
+    render();
+  }
+  document.querySelectorAll('[data-mode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.mode)));
+  document.querySelectorAll('[data-amount]').forEach((b) => b.addEventListener('click', () => {
+    state.amount = b.dataset.amount;
+    document.querySelectorAll('[data-amount]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    render();
+  }));
+  document.querySelectorAll('[data-view]').forEach((b) => b.addEventListener('click', () => {
+    state.view = b.dataset.view;
+    document.querySelectorAll('[data-view]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderChart();
+  }));
+
+  /* ---------- Exports ---------- */
+  function renderExport() {
+    const rep = state.entries.length ? report() : null;
+    const n = rep ? rep.rows.length : 0;
+    $('#exportZip').disabled = $('#exportXlsx').disabled = !n;
+    if (!rep || !n) { $('#exportInfo').textContent = 'Importez des reçus pour activer les exports.'; return; }
+    const period = rep.months.length ? `${N.monthLabel(rep.months[0])} à ${N.monthLabel(rep.months.at(-1))}` : '';
+    const parts = [`${n} reçu${n > 1 ? 's' : ''} (${period}, mois de rattachement : ${state.mode === 'transaction' ? 'date de transaction' : 'fin de période'})`];
+    if (rep.verify.length) parts.push(`${rep.verify.length} « À vérifier » dans le dossier « _À vérifier » du ZIP`);
+    if (rep.byClient.has(N.UNMAPPED)) parts.push(`comptes non rattachés dans « ${N.UNMAPPED} »`);
+    $('#exportInfo').textContent = `${parts.join(' ; ')}. Exemple de nom : ${N.fileNameFor(rep.rows[0].f, rep.rows[0].client, state.mode)}`;
+  }
+  const stamp = () => { const r = report(); return r.months.length ? `${r.months[0]}_${r.months.at(-1)}` : ''; };
+  function workbookBlob() {
+    const wb = N.buildWorkbook(XLSX, report(), { mode: state.mode, amount: state.amount });
+    return new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellDates: true })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  }
+  $('#exportXlsx').addEventListener('click', () => download(workbookBlob(), `Reçus LinkedIn ${stamp()}.xlsx`));
+  $('#exportZip').addEventListener('click', async () => {
+    const btn = $('#exportZip');
+    btn.disabled = true;
+    const label = btn.textContent;
+    btn.textContent = 'Préparation du ZIP…';
+    try {
+      const rep = report();
+      const zip = new JSZip();
+      const byId = new Map(state.entries.map((e) => [e.id, e]));
+      for (const p of N.zipPlan(rep, state.mode)) if (byId.get(p.id).file) zip.file(p.path, byId.get(p.id).file, { date: new Date() });
+      zip.file('Récapitulatif.xlsx', workbookBlob());
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+      download(blob, `Reçus LinkedIn par client ${stamp()}.zip`);
+    } finally {
+      btn.textContent = label;
+      btn.disabled = false;
+    }
+  });
+  function download(blob, name) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 30_000);
+  }
+
+  /* ---------- Relevés par client ---------- */
+  const rel = { kind: 'custom', month: '', year: '', quarter: '1', from: '', to: '', amount: 'ttc', off: new Set(), init: false };
+  const todayIso = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+  /** Dates de rattachement des reçus comptés (pour proposer les mois, années et bornes). */
+  function relDates() {
+    const ds = [];
+    for (const e of view()) if (N.statusOf(e, state.forced) === 'recu') { const d = N.attribDate(e.res.f, state.mode); if (d) ds.push(d); }
+    return ds.sort();
+  }
+  function initRel() {
+    const ds = relDates();
+    if (!ds.length) return;
+    const last = ds.at(-1);
+    rel.from = ds[0]; rel.to = last;
+    rel.month = last.slice(0, 7);
+    rel.year = last.slice(0, 4);
+    rel.quarter = String(Math.floor((Number(last.slice(5, 7)) - 1) / 3) + 1);
+    rel.init = true;
+    renderPeriodInputs();
+  }
+  /** Clients connus : reçus comptés et reçus « À vérifier » dont le compte est lu. */
+  function relClients() {
+    const set = new Set();
+    for (const e of view()) {
+      const st = N.statusOf(e, state.forced);
+      if ((st === 'recu' || st === 'verifier') && e.res?.f?.accId) set.add(N.clientOf(e.res.f, state.mapping));
+    }
+    return [...set].sort((a, b) => (a === N.UNMAPPED) - (b === N.UNMAPPED) || a.localeCompare(b, 'fr'));
+  }
+  const relSpec = () => (rel.kind === 'month' ? { kind: 'month', month: rel.month } : rel.kind === 'quarter' ? { kind: 'quarter', year: rel.year, quarter: rel.quarter } : rel.kind === 'year' ? { kind: 'year', year: rel.year } : { kind: 'custom', from: rel.from, to: rel.to });
+
+  function renderPeriodInputs() {
+    document.querySelectorAll('[data-rkind]').forEach((b) => { b.setAttribute('aria-pressed', String(b.dataset.rkind === rel.kind && !state.gf.month)); b.disabled = !!state.gf.month; });
+    if (state.gf.month) {
+      $('#rPeriodInputs').innerHTML = `<span class="badge acc">${esc(N.monthLabel(state.gf.month))} (filtre du haut de page)</span>`;
+      return;
+    }
+    const years = [...new Set(relDates().map((d) => d.slice(0, 4)))];
+    if (rel.year && !years.includes(rel.year)) years.push(rel.year);
+    years.sort();
+    const yearSel = `<select id="rYear" aria-label="Année">${years.map((y) => `<option ${y === rel.year ? 'selected' : ''}>${y}</option>`).join('')}</select>`;
+    const box = $('#rPeriodInputs');
+    if (rel.kind === 'month') box.innerHTML = `<input type="month" id="rMonth" value="${esc(rel.month)}" aria-label="Mois">`;
+    else if (rel.kind === 'quarter') box.innerHTML = `${yearSel}<select id="rQuarter" aria-label="Trimestre">${[1, 2, 3, 4].map((q) => `<option value="${q}" ${String(q) === rel.quarter ? 'selected' : ''}>T${q}</option>`).join('')}</select>`;
+    else if (rel.kind === 'year') box.innerHTML = yearSel;
+    else box.innerHTML = `<label class="row small" style="gap:6px">du <input type="date" id="rFrom" value="${esc(rel.from)}"></label><label class="row small" style="gap:6px">au <input type="date" id="rTo" value="${esc(rel.to)}"></label>`;
+    const on = (id, k) => { const el = box.querySelector(id); if (el) el.addEventListener('change', () => { rel[k] = el.value; renderReleves(); }); };
+    on('#rMonth', 'month'); on('#rYear', 'year'); on('#rQuarter', 'quarter'); on('#rFrom', 'from'); on('#rTo', 'to');
+  }
+  document.querySelectorAll('[data-rkind]').forEach((b) => b.addEventListener('click', () => { rel.kind = b.dataset.rkind; renderPeriodInputs(); renderReleves(); }));
+  document.querySelectorAll('[data-rmode]').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.rmode)));
+  document.querySelectorAll('[data-ramount]').forEach((b) => b.addEventListener('click', () => {
+    rel.amount = b.dataset.ramount;
+    document.querySelectorAll('[data-ramount]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderReleves();
+  }));
+
+  /** Relevés de la sélection courante ({ res, period, meta } ou { error }). */
+  function currentStatements() {
+    let period;
+    // Filtre du mois en haut de page : le relevé porte sur ce mois.
+    try { period = N.periodRange(state.gf.month ? { kind: 'month', month: state.gf.month } : relSpec()); } catch (err) { return { error: err.message }; }
+    const clients = relClients().filter((c) => !rel.off.has(c));
+    if (!clients.length) return { error: 'Choisissez au moins un client.' };
+    const res = N.buildStatements(view(), state.mapping, state.forced, { mode: state.mode, from: period.from, to: period.to, clients });
+    return { res, period, meta: { ...period, mode: state.mode, editedOn: N.frDate(todayIso()) } };
+  }
+
+  function renderReleves() {
+    const has = view().some((e) => N.statusOf(e, state.forced) === 'recu');
+    if (has && !rel.init) initRel();
+    const all = relClients();
+    $('#rClients').innerHTML = !has ? '' : `<span class="small muted" style="margin-right:2px">Clients</span>${all.map((c) => `<label class="chip"><input type="checkbox" data-rclient="${esc(c)}" ${rel.off.has(c) ? '' : 'checked'}>${esc(c)}</label>`).join('')}
+      <button class="ghost" id="rAll">Tous</button><button class="ghost" id="rNone">Aucun</button>`;
+    document.querySelectorAll('[data-rclient]').forEach((cb) => cb.addEventListener('change', () => { if (cb.checked) rel.off.delete(cb.dataset.rclient); else rel.off.add(cb.dataset.rclient); renderReleves(); }));
+    if ($('#rAll')) $('#rAll').addEventListener('click', () => { rel.off.clear(); renderReleves(); });
+    if ($('#rNone')) $('#rNone').addEventListener('click', () => { all.forEach((c) => rel.off.add(c)); renderReleves(); });
+    const disable = (v) => { $('#rPdf').disabled = $('#rXlsx').disabled = v; };
+    if (!has) {
+      $('#rInfo').innerHTML = '';
+      $('#rTable').innerHTML = `<div class="empty">Importez des reçus pour préparer les relevés.</div>`;
+      $('#rExportInfo').textContent = '';
+      return disable(true);
+    }
+    const cur = currentStatements();
+    if (cur.error) {
+      $('#rInfo').innerHTML = `<div class="notice warn"><span class="ic">⚠</span><div>${esc(cur.error)}</div></div>`;
+      $('#rTable').innerHTML = '';
+      $('#rExportInfo').textContent = '';
+      return disable(true);
+    }
+    const { res, period } = cur;
+    const key = rel.amount;
+    const pl = (n, one, many) => `${n} ${n > 1 ? many : one}`;
+    const notes = [];
+    if (res.pendingTotal) notes.push(`${pl(res.pendingTotal, 'reçu « À vérifier » est en attente', 'reçus « À vérifier » sont en attente')} pour ces clients : non compté${res.pendingTotal > 1 ? 's' : ''} dans les totaux, indiqué${res.pendingTotal > 1 ? 's' : ''} sur chaque relevé.`);
+    if (res.unassignedPending) notes.push(`${pl(res.unassignedPending, 'reçu « À vérifier » n’a', 'reçus « À vérifier » n’ont')} pas de compte publicitaire lisible : rattaché${res.unassignedPending > 1 ? 's' : ''} à aucun client (étape 4).`);
+    if (res.statements.some((s) => s.client === N.UNMAPPED)) notes.push(`« ${N.UNMAPPED} » regroupe les comptes sans client (étape 2).`);
+    $('#rInfo').innerHTML = `<div class="small"><strong>${esc(period.label.replace(/^./, (c) => c.toUpperCase()))}</strong> <span class="muted">(${rel.kind === 'custom' && !state.gf.month ? '' : `${esc(period.detail)}, `}rattachement : ${state.mode === 'transaction' ? 'date de transaction' : 'fin de période'})</span> · ${pl(res.total.n, 'reçu', 'reçus')} · <strong>${eur(res.total.ttc)} TTC</strong> <span class="muted">(HT ${eur(res.total.ht)}, TVA ${eur(res.total.tva)})</span></div>`
+      + notes.map((n) => `<div class="notice warn" style="margin-top:6px"><span class="ic">⚠</span><div>${esc(n)}</div></div>`).join('');
+    const months = res.months;
+    $('#rTable').innerHTML = `<div class="tbl"><table>
+      <thead><tr><th>Client</th>${months.map((m) => `<th class="n">${N.monthLabel(m, true)}</th>`).join('')}<th class="n">Total ${key.toUpperCase()}</th><th class="n">Reçus</th><th class="n">À vérifier</th></tr></thead>
+      <tbody>${res.statements.map((st) => `<tr><td>${esc(st.client)}</td>${months.map((m) => { const v = st.byMonth.get(m); return `<td class="n">${v ? eur(v[key]) : '<span class="muted">–</span>'}</td>`; }).join('')}<td class="n"><strong>${eur(st.total[key])}</strong></td><td class="n">${st.total.n}</td><td class="n">${st.pending ? `<span class="badge warn">${st.pending}</span>` : '<span class="muted">0</span>'}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Total</td>${months.map((m) => `<td class="n">${eur(res.statements.reduce((s, st) => s + (st.byMonth.get(m)?.[key] ?? 0), 0))}</td>`).join('')}<td class="n">${eur(res.total[key])}</td><td class="n">${res.total.n}</td><td class="n">${res.pendingTotal}</td></tr></tfoot>
+    </table></div><div class="small muted" style="margin-top:6px">Montants ${key.toUpperCase()} ; « – » : aucun reçu ce mois-là. Les reçus « À vérifier » ne sont pas comptés.</div>`;
+    disable(false);
+    const n = res.statements.length;
+    $('#rExportInfo').textContent = `${pl(n, 'relevé', 'relevés')} : ${n > 1 ? 'PDF regroupés dans un fichier ZIP (un PDF par client)' : 'un PDF'} ; Excel : un onglet par client et un onglet récapitulatif.`;
+  }
+
+  $('#rPdf').addEventListener('click', async () => {
+    const cur = currentStatements();
+    if (cur.error) return toast(cur.error);
+    const btn = $('#rPdf'), label = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Préparation des PDF…';
+    try {
+      const { jsPDF } = window.jspdf;
+      const files = cur.res.statements.map((st) => ({ name: `Relevé LinkedIn - ${N.safeName(st.client)} - ${cur.period.slug}.pdf`, blob: N.statementPdf(jsPDF, st, cur.meta).output('blob') }));
+      if (files.length === 1) download(files[0].blob, files[0].name);
+      else {
+        const zip = new JSZip();
+        for (const f of files) zip.file(f.name, f.blob);
+        download(await zip.generateAsync({ type: 'blob' }), `Relevés LinkedIn ${cur.period.slug}.zip`);
+      }
+    } finally {
+      btn.textContent = label; btn.disabled = false;
+    }
+  });
+  $('#rXlsx').addEventListener('click', () => {
+    const cur = currentStatements();
+    if (cur.error) return toast(cur.error);
+    const wb = N.statementWorkbook(XLSX, cur.res, cur.meta);
+    download(new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array', cellDates: true })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), `Relevés LinkedIn ${cur.period.slug}.xlsx`);
+  });
+  renderPeriodInputs();
+
+  /* ---------- Filtres du haut de page (client, mois) ---------- */
+  const filterLabel = () => [state.gf.client && `client ${state.gf.client}`, state.gf.month && N.monthLabel(state.gf.month)].filter(Boolean).join(', ');
+  const filterSlug = () => [state.gf.client && N.safeName(state.gf.client), state.gf.month].filter(Boolean).map((s) => ` - ${s}`).join('');
+  function renderFilters() {
+    const opt = (o) => N.filterOptions(N.filterEntries(state.entries, state.mapping, { ...o, mode: state.mode }), state.mapping, state.forced, state.mode);
+    // Seuls les clients et les mois qui ont des reçus ; chaque liste tient compte de l'autre choix.
+    const clients = opt({ month: state.gf.month }).clients;
+    const months = opt({ client: state.gf.client }).months;
+    if (state.gf.client && !clients.includes(state.gf.client)) state.gf.client = '';
+    if (state.gf.month && !months.includes(state.gf.month)) state.gf.month = '';
+    $('#gClient').innerHTML = `<option value="">Tous les clients</option>${clients.map((c) => `<option value="${esc(c)}" ${c === state.gf.client ? 'selected' : ''}>${esc(c)}</option>`).join('')}`;
+    $('#gMonth').innerHTML = `<option value="">Tous les mois</option>${[...months].reverse().map((m) => `<option value="${m}" ${m === state.gf.month ? 'selected' : ''}>${N.monthLabel(m)}</option>`).join('')}`;
+    $('#gClient').disabled = $('#gMonth').disabled = !clients.length && !months.length;
+    const active = !!(state.gf.client || state.gf.month);
+    $('#gReset').classList.toggle('hidden', !active);
+    $('#gBanner').classList.toggle('hidden', !active);
+    if (active) $('#gBanner').innerHTML = `<span class="ic">●</span><div>Filtre actif : <strong>${esc(filterLabel())}</strong>. Statistiques, détail des reçus, relevés, récapitulatifs et exports ne portent que sur cette sélection (mois selon le rattachement choisi). L’import, la correspondance et les contrôles restent complets.</div>`;
+  }
+  function afterFilter() {
+    state.from = state.to = '';
+    rel.init = false;
+    render();
+  }
+  $('#gClient').addEventListener('change', (e) => { state.gf.client = e.target.value; afterFilter(); });
+  $('#gMonth').addEventListener('change', (e) => { state.gf.month = e.target.value; afterFilter(); });
+  $('#gReset').addEventListener('click', () => { state.gf.client = state.gf.month = ''; afterFilter(); });
+
+  /* ---------- Google Drive (lecture seule) ---------- */
+  const CFG = window.RECUS_CONFIG || {};
+  const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+  const DRIVE_API = 'https://www.googleapis.com/drive/v3/files';
+  const FOLDER_KEY = 'recus-linkedin.dossier-drive';
+  /* Le jeton d'accès reste en mémoire (jamais enregistré) ; seul le dossier choisi (identifiant, nom) est mémorisé. */
+  const drive = { token: null, expires: 0, client: null, ready: false, error: null, folder: loadFolder() };
+  const driveConfigured = () => !!(CFG.googleClientId && CFG.pickerApiKey);
+  const onWeb = location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname);
+  const connected = () => !!drive.token && Date.now() < drive.expires - 60_000;
+  class DriveAuthError extends Error { constructor(m) { super(m); this.name = 'DriveAuthError'; } }
+
+  function loadFolder() {
+    try { const f = JSON.parse(localStorage.getItem(FOLDER_KEY) || 'null'); return f && N.isDriveId(f.id) ? f : null; } catch { return null; }
+  }
+  function saveFolder(f) {
+    drive.folder = f;
+    try { localStorage.setItem(FOLDER_KEY, JSON.stringify(f)); } catch { /* stockage indisponible */ }
+  }
+  function loadScript(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src;
+      s.async = true;
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error(src.replace(/^https:\/\/([^/]+).*$/, '$1')));
+      document.head.appendChild(s);
+    });
+  }
+  async function prepareGoogle() {
+    renderDrive();
+    if (!libsOk || !driveConfigured() || !onWeb) return;
+    try {
+      await Promise.all([loadScript('https://accounts.google.com/gsi/client'), loadScript('https://apis.google.com/js/api.js')]);
+      await new Promise((resolve, reject) => gapi.load('picker', { callback: resolve, onerror: () => reject(new Error('Google Picker')) }));
+      drive.client = google.accounts.oauth2.initTokenClient({ client_id: CFG.googleClientId, scope: DRIVE_SCOPE, callback: () => {} });
+      drive.ready = true;
+    } catch (err) {
+      drive.error = `Services Google injoignables (${err.message}). Vérifiez la connexion internet puis rechargez la page.`;
+    }
+    renderDrive();
+  }
+
+  /** Jeton d'accès. À appeler directement depuis un clic : la fenêtre de connexion Google s'ouvre si besoin. */
+  function getToken() {
+    if (connected()) return Promise.resolve(drive.token);
+    return new Promise((resolve, reject) => {
+      drive.client.callback = (r) => {
+        if (r.error) return reject(new Error(r.error_description || r.error));
+        if (!google.accounts.oauth2.hasGrantedAllScopes(r, DRIVE_SCOPE)) return reject(new Error('L’accès en lecture à Google Drive n’a pas été accordé.'));
+        drive.token = r.access_token;
+        drive.expires = Date.now() + Number(r.expires_in || 3600) * 1000;
+        renderDrive();
+        resolve(drive.token);
+      };
+      drive.client.error_callback = (e) => reject(new Error(e && e.type === 'popup_closed' ? 'Fenêtre de connexion Google fermée.' : e && e.type === 'popup_failed_to_open' ? 'La fenêtre de connexion Google a été bloquée par le navigateur : autorisez les fenêtres pour cette page.' : 'Connexion Google impossible.'));
+      drive.client.requestAccessToken({ prompt: '' });
+    });
+  }
+
+  async function driveGet(url, as) {
+    const r = await fetch(url, { headers: { Authorization: `Bearer ${drive.token}` } });
+    if (r.status === 401) { drive.token = null; renderDrive(); throw new DriveAuthError('Session Google expirée : reconnectez-vous puis synchronisez.'); }
+    if (!r.ok) { let msg = `erreur ${r.status}`; try { msg = (await r.json()).error?.message || msg; } catch { /* réponse non JSON */ } throw new Error(msg); }
+    return as === 'blob' ? r.blob() : r.json();
+  }
+  async function listChildren(folderId) {
+    const out = [];
+    let page = '';
+    do {
+      const q = new URLSearchParams({
+        q: `'${folderId}' in parents and trashed = false`,
+        fields: 'nextPageToken, files(id, name, mimeType, md5Checksum, modifiedTime, shortcutDetails)',
+        pageSize: '1000', supportsAllDrives: 'true', includeItemsFromAllDrives: 'true',
+      });
+      if (page) q.set('pageToken', page);
+      const d = await driveGet(`${DRIVE_API}?${q}`);
+      out.push(...(d.files || []));
+      page = d.nextPageToken || '';
+    } while (page);
+    return out;
+  }
+  const downloadPdf = async (p) => new File([await driveGet(`${DRIVE_API}/${encodeURIComponent(p.id)}?alt=media&supportsAllDrives=true`, 'blob')], p.name, { type: 'application/pdf' });
+
+  /** Recharge le dossier choisi : seuls les PDF nouveaux (ou modifiés depuis) sont téléchargés et lus. */
+  async function syncDrive() {
+    if (!drive.folder || state.busy) return;
+    const bar = $('#driveProgress'), txt = $('#driveProgressText');
+    try {
+      await getToken();
+      state.busy = true;
+      bar.classList.remove('hidden');
+      bar.firstElementChild.style.width = '0%';
+      const name = drive.folder.name;
+      txt.textContent = `Lecture du dossier « ${name} »…`;
+      const listed = await N.listDrivePdfs(drive.folder.id, listChildren, (p) => { txt.textContent = `Lecture du dossier « ${name} » : ${p.folders} dossier${p.folders > 1 ? 's' : ''}, ${p.pdfs} PDF…`; });
+      state.busy = false;
+      const known = new Map(state.entries.filter((e) => e.driveId).map((e) => [e.driveId, e.version]));
+      const plan = N.planSync(listed.pdfs, known);
+      if (plan.changed.length) { const ids = new Set(plan.changed.map((p) => p.id)); state.entries = state.entries.filter((e) => !ids.has(e.driveId)); }
+      const todo = [...plan.add, ...plan.changed];
+      saveFolder({ ...drive.folder, syncedAt: new Date().toISOString() });
+      const others = listed.others ? ` ${listed.others} autre${listed.others > 1 ? 's' : ''} fichier${listed.others > 1 ? 's' : ''} (pas des PDF) non lu${listed.others > 1 ? 's' : ''}.` : '';
+      const doneText = `${listed.pdfs.length} PDF dans « ${name} » et ses sous-dossiers : ${todo.length} nouveau${todo.length > 1 ? 'x' : ''} ou modifié${todo.length > 1 ? 's' : ''} lu${todo.length > 1 ? 's' : ''}, ${plan.same.length} déjà importé${plan.same.length > 1 ? 's' : ''}.${others}`;
+      if (!todo.length) { bar.classList.add('hidden'); txt.textContent = doneText; render(); return; }
+      await importFiles(todo.map((p) => ({ path: `${name}/${p.path}`, name: p.name, driveId: p.id, version: p.version, load: () => downloadPdf(p) })), { bar, text: txt, doneText });
+    } catch (err) {
+      bar.classList.add('hidden');
+      txt.textContent = err.message;
+      toast(err.message);
+    } finally {
+      state.busy = false;
+      renderDrive();
+    }
+  }
+
+  function openPicker() {
+    const P = google.picker;
+    const folders = () => new P.DocsView(P.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true).setMimeTypes('application/vnd.google-apps.folder');
+    const label = (v, t) => (typeof v.setLabel === 'function' ? v.setLabel(t) : v);
+    new P.PickerBuilder()
+      .setTitle('Choisissez le dossier des reçus LinkedIn')
+      .setLocale('fr')
+      .setOAuthToken(drive.token)
+      .setDeveloperKey(CFG.pickerApiKey)
+      .setOrigin(location.origin)
+      .enableFeature(P.Feature.SUPPORT_DRIVES)
+      .addView(label(folders().setOwnedByMe(true), 'Mon Drive'))
+      .addView(label(folders().setOwnedByMe(false), 'Partagés avec moi'))
+      .addView(label(folders().setEnableDrives(true), 'Drives partagés'))
+      .setCallback((data) => {
+        if (data[P.Response.ACTION] !== P.Action.PICKED) return;
+        const d = data[P.Response.DOCUMENTS][0];
+        if (!N.isDriveId(d[P.Document.ID])) return toast('Dossier Google Drive invalide.');
+        saveFolder({ id: d[P.Document.ID], name: d[P.Document.NAME] || 'Dossier' });
+        renderDrive();
+        syncDrive();
+      })
+      .build()
+      .setVisible(true);
+  }
+
+  function renderDrive() {
+    const show = (id, v) => $(id).classList.toggle('hidden', !v);
+    const on = connected();
+    let status;
+    if (!driveConfigured()) status = 'Connexion pas encore configurée (identifiant client et clé API à renseigner, voir le mode d’emploi). Le dépôt de fichiers reste disponible.';
+    else if (!onWeb) status = `La connexion Google ne fonctionne pas depuis un fichier ouvert sur l’ordinateur : ouvrez la page publiée${CFG.pageUrl ? ` (${CFG.pageUrl})` : ''}.`;
+    else if (drive.error) status = drive.error;
+    else if (!drive.ready) status = 'Chargement des services Google…';
+    else status = on ? 'Connecté, en lecture seule : l’outil ne modifie jamais votre Drive.' : 'Lecture seule : l’outil ne modifie jamais votre Drive.';
+    $('#driveStatus').textContent = status;
+    $('#driveConnect').disabled = !(driveConfigured() && onWeb && drive.ready && !drive.error) || state.busy;
+    $('#driveConnect').textContent = drive.folder ? `Se connecter et synchroniser « ${trunc(drive.folder.name, 32)} »` : 'Se connecter à Google Drive';
+    show('#driveConnect', !on);
+    show('#drivePick', on && !drive.folder);
+    show('#driveSync', on && !!drive.folder);
+    show('#driveChange', on && !!drive.folder);
+    show('#driveLogout', on);
+    $('#driveSync').disabled = $('#driveChange').disabled = $('#drivePick').disabled = state.busy;
+    $('#driveFolder').innerHTML = drive.folder
+      ? `Dossier choisi : <strong>${esc(drive.folder.name)}</strong> <span class="muted">(et ses sous-dossiers)${drive.folder.syncedAt ? ` · dernière synchronisation le ${esc(new Date(drive.folder.syncedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }))}` : ''}</span>`
+      : '';
+  }
+  $('#driveConnect').addEventListener('click', async () => {
+    try { await getToken(); } catch (err) { return toast(err.message); }
+    if (drive.folder) syncDrive();
+    else openPicker();
+  });
+  $('#drivePick').addEventListener('click', () => getToken().then(openPicker, (err) => toast(err.message)));
+  $('#driveChange').addEventListener('click', () => getToken().then(openPicker, (err) => toast(err.message)));
+  $('#driveSync').addEventListener('click', () => syncDrive());
+  $('#driveLogout').addEventListener('click', () => {
+    const t = drive.token;
+    drive.token = null;
+    drive.expires = 0;
+    if (t) google.accounts.oauth2.revoke(t, () => {});
+    renderDrive();
+    toast('Déconnecté de Google Drive (les reçus déjà lus restent dans la page).');
+  });
+
+  /* ---------- Récapitulatifs ---------- */
+  const sumState = { view: 'annual', year: '', key: 'ttc' };
+  function currentSummary() {
+    const entries = view();
+    const years = N.summaryYears(entries, state.mapping, state.forced, state.mode);
+    if (!years.includes(sumState.year)) sumState.year = years.at(-1) || '';
+    if (!years.length) return { years, sum: null };
+    const sum = sumState.view === 'annual'
+      ? N.annualSummary(entries, state.mapping, state.forced, { mode: state.mode, year: sumState.year })
+      : N.lifetimeSummary(entries, state.mapping, state.forced, { mode: state.mode });
+    return { years, sum };
+  }
+  function renderRecaps() {
+    const { years, sum } = currentSummary();
+    $('#sYear').innerHTML = years.map((y) => `<option ${y === sumState.year ? 'selected' : ''}>${y}</option>`).join('');
+    $('#sYearBox').classList.toggle('hidden', sumState.view !== 'annual');
+    $('#sPdf').disabled = $('#sXlsx').disabled = !sum;
+    if (!sum) { $('#sInfo').innerHTML = ''; $('#sTable').innerHTML = `<div class="empty">Aucun reçu compté pour l'instant.</div>`; return; }
+    const k = sumState.key, K = k.toUpperCase();
+    const cols = N.summaryColumns(sum);
+    const life = sum.kind === 'lifetime';
+    const scope = life ? (sum.first ? `Depuis le premier reçu (${N.monthLabel(sum.first)}) jusqu’au dernier (${N.monthLabel(sum.last)})` : 'Depuis le début') : `Année ${sum.year}`;
+    const notes = [];
+    if (sum.pending) notes.push(`${sum.pending} reçu${sum.pending > 1 ? 's' : ''} « À vérifier » en attente, non compté${sum.pending > 1 ? 's' : ''}.`);
+    if (sum.unassignedPending) notes.push(`${sum.unassignedPending} reçu${sum.unassignedPending > 1 ? 's' : ''} « À vérifier » sans compte publicitaire lisible.`);
+    $('#sInfo').innerHTML = `<strong>${esc(scope)}</strong> <span class="muted">(rattachement : ${state.mode === 'transaction' ? 'date de transaction' : 'fin de période'})</span> · ${sum.total.n} reçu${sum.total.n > 1 ? 's' : ''} · <strong>${eur(sum.total[k])} ${K}</strong>`
+      + notes.map((n) => `<div class="notice warn" style="margin-top:6px"><span class="ic">⚠</span><div>${esc(n)}</div></div>`).join('');
+    const cell = (v) => (v ? eur(v[k]) : '<span class="muted">–</span>');
+    const ml = (m) => (m ? N.monthLabel(m, true) : '–');
+    $('#sTable').innerHTML = `<div class="tbl"><table>
+      <thead><tr><th>Client</th>${cols.map((c) => `<th class="n">${esc(c.label)}</th>`).join('')}<th class="n">Total ${K}</th><th class="n">Reçus</th>${life ? '<th>Premier reçu</th><th>Dernier reçu</th>' : ''}<th class="n">À vérifier</th></tr></thead>
+      <tbody>${sum.rows.map((r) => `<tr><td>${esc(r.client)}</td>${cols.map((c) => `<td class="n">${cell(c.get(r))}</td>`).join('')}<td class="n"><strong>${eur(r.total[k])}</strong></td><td class="n">${r.total.n}</td>${life ? `<td>${ml(r.first)}</td><td>${ml(r.last)}</td>` : ''}<td class="n">${r.pending ? `<span class="badge warn">${r.pending}</span>` : '<span class="muted">0</span>'}</td></tr>`).join('')}</tbody>
+      <tfoot><tr><td>Total</td>${cols.map((c) => `<td class="n">${eur(c.total?.[k] ?? 0)}</td>`).join('')}<td class="n">${eur(sum.total[k])}</td><td class="n">${sum.total.n}</td>${life ? `<td>${ml(sum.first)}</td><td>${ml(sum.last)}</td>` : ''}<td class="n">${sum.pending}</td></tr></tfoot>
+    </table></div><div class="small muted" style="margin-top:6px">Montants ${K} ; « – » : aucun reçu. Les reçus « À vérifier » ne sont pas comptés.</div>`;
+  }
+  document.querySelectorAll('[data-sview]').forEach((b) => b.addEventListener('click', () => {
+    sumState.view = b.dataset.sview;
+    document.querySelectorAll('[data-sview]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderRecaps();
+  }));
+  document.querySelectorAll('[data-samount]').forEach((b) => b.addEventListener('click', () => {
+    sumState.key = b.dataset.samount;
+    document.querySelectorAll('[data-samount]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    renderRecaps();
+  }));
+  $('#sYear').addEventListener('change', (e) => { sumState.year = e.target.value; renderRecaps(); });
+  const summaryMeta = () => ({ mode: state.mode, key: sumState.key, filter: filterLabel(), editedOn: N.frDate(todayIso()) });
+  const summaryName = (sum, ext) => `Récapitulatif LinkedIn ${sum.kind === 'annual' ? sum.year : 'depuis le début'}${filterSlug()}.${ext}`;
+  $('#sPdf').addEventListener('click', () => {
+    const { sum } = currentSummary();
+    if (sum) download(N.summaryPdf(window.jspdf.jsPDF, sum, summaryMeta()).output('blob'), summaryName(sum, 'pdf'));
+  });
+  $('#sXlsx').addEventListener('click', () => {
+    const { sum } = currentSummary();
+    if (!sum) return;
+    const wb = N.summaryWorkbook(XLSX, sum, summaryMeta());
+    download(new Blob([XLSX.write(wb, { bookType: 'xlsx', type: 'array' })], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), summaryName(sum, 'xlsx'));
+  });
+
+  render();
+  prepareGoogle();
+})();
+</script>
+</body>
+</html>
