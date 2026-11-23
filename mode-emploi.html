@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+<title>Reçus LinkedIn Ads — Mode d’emploi</title>
+<style>
+  :root { --fg: #1b1b1f; --muted: #63636b; --line: #e4e3df; --accent: #5b5bd6; --accent-soft: #efeffb; --mark: #e5484d; --warn: #b26205; --warn-soft: #fdf3e4; }
+  * { box-sizing: border-box; }
+  body { margin: 0; color: var(--fg); background: #f7f7f5; font: 15px/1.55 "Segoe UI", system-ui, -apple-system, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 28px 24px 60px; background: #fff; }
+  header { display: flex; align-items: center; gap: 14px; border-bottom: 1px solid var(--line); padding-bottom: 14px; margin-bottom: 6px; }
+  .logo { width: 38px; height: 38px; border-radius: 10px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; flex: none; }
+  h1 { font-size: 24px; margin: 0; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 2px 0 0; }
+  .top-links { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .top-links a { font-size: 13.5px; color: var(--accent); text-decoration: none; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; white-space: nowrap; }
+  h2 { font-size: 18px; margin: 26px 0 8px; display: flex; align-items: center; gap: 10px; }
+  h2 .n { width: 26px; height: 26px; border-radius: 8px; background: var(--accent-soft); color: var(--accent); font-size: 14px; display: grid; place-items: center; flex: none; }
+  h3 { font-size: 15px; margin: 16px 0 6px; }
+  p { margin: 6px 0; }
+  ol, ul { margin: 6px 0; padding-left: 22px; }
+  li { margin: 3px 0; }
+  strong.btn { font-weight: 600; background: #f2f2f0; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; white-space: nowrap; }
+  figure { margin: 10px 0 14px; }
+  figure img { width: 100%; height: auto; display: block; border: 1px solid var(--line); border-radius: 10px; }
+  figure.small img { width: 78%; }
+  figcaption { margin-top: 6px; font-size: 13.5px; color: var(--muted); }
+  .num { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; background: var(--mark); color: #fff; font-size: 12px; font-weight: 700; margin-right: 4px; vertical-align: 1px; }
+  .tip { background: var(--accent-soft); border-radius: 10px; padding: 9px 12px; margin: 10px 0; }
+  .warn { background: var(--warn-soft); border-radius: 10px; padding: 9px 12px; margin: 10px 0; }
+  .pb { display: grid; grid-template-columns: 34% 1fr; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin: 8px 0; }
+  .pb > div { padding: 8px 12px; border-top: 1px solid var(--line); }
+  .pb > div:nth-child(-n+2) { border-top: 0; }
+  .pb > div:nth-child(odd) { background: #fafaf8; font-weight: 600; }
+  .url { font-family: Consolas, monospace; font-size: 13.5px; background: #f2f2f0; padding: 1px 6px; border-radius: 5px; }
+  footer { margin-top: 28px; color: var(--muted); font-size: 12.5px; border-top: 1px solid var(--line); padding-top: 10px; }
+
+  /* Impression (et PDF) : A4, compact, aucune image coupée en deux. */
+  @page { size: A4; margin: 10mm 12mm 13mm; }
+  @media print {
+    body { background: #fff; font-size: 9.9pt; line-height: 1.38; }
+    main { max-width: none; padding: 0; }
+    .top-links { display: none; }
+    h1 { font-size: 17pt; }
+    h2 { font-size: 13pt; margin: 12pt 0 4pt; break-after: avoid; }
+    h3 { font-size: 10.6pt; margin: 8pt 0 3pt; break-after: avoid; }
+    figure { margin: 5pt 0 7pt; break-inside: avoid; }
+    figcaption { font-size: 8.8pt; }
+    figure.mid img { width: 84%; }
+    figure.small img { width: 64%; }
+    .tip, .warn, .pb, .keep { break-inside: avoid; }
+    .num { width: 15px; height: 15px; font-size: 8.5pt; }
+    footer { display: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="logo" aria-hidden="true">in</div>
+    <div>
+      <h1>Reçus LinkedIn Ads — Mode d’emploi</h1>
+      <p class="sub">Ranger les reçus LinkedIn par client et préparer les relevés, sans rien retaper.</p>
+    </div>
+    <div class="top-links">
+      <a href="index.html">← Revenir à l’outil</a>
+      <a href="mode-emploi.pdf" download>Version PDF à imprimer</a>
+    </div>
+  </header>
+
+  <h2><span class="n">1</span>À quoi sert l’outil</h2>
+  <p>Chaque fois qu’un client paie une publicité sur LinkedIn, LinkedIn envoie un <strong>reçu</strong>. L’outil lit ces reçus
+    dans votre dossier Google Drive, les range par client et calcule les totaux. Il prépare ensuite, en un clic, des relevés
+    et des récapitulatifs à envoyer ou à archiver. Il n’y a rien à installer : tout se passe dans une page internet.</p>
+
+  <h2><span class="n">2</span>Première utilisation</h2>
+  <ol>
+    <li>Ouvrez la page de l’outil : <span class="url">https://eyrobinet.github.io/recus-linkedin/</span>. Ajoutez-la à vos favoris.</li>
+    <li>Cliquez sur <strong class="btn">Se connecter à Google Drive</strong> <span class="num">1</span>. Une fenêtre Google s’ouvre :
+      choisissez votre compte Google, puis acceptez que l’outil <strong>voie</strong> vos fichiers. L’outil peut seulement lire :
+      il ne modifie, ne déplace et ne supprime jamais rien.</li>
+    <li>Choisissez le <strong>dossier des reçus LinkedIn</strong>. Les sous-dossiers sont lus aussi.</li>
+    <li>Si Google affiche <strong class="btn">Autoriser les cookies</strong>, cliquez dessus : sans cela, la fenêtre de choix du dossier ne peut pas s’afficher.</li>
+    <li>L’outil lit tous les reçus. Une barre avance pendant la lecture, qui peut prendre une minute.</li>
+  </ol>
+  <figure>
+    <img src="aide/1-connexion.png" alt="Haut de la page de l’outil : bouton Se connecter à Google Drive, zone de dépôt de fichiers et lien Mode d’emploi.">
+    <figcaption><span class="num">1</span> Se connecter à Google Drive · <span class="num">2</span> en secours, vous pouvez aussi glisser des reçus PDF dans cette zone · <span class="num">3</span> ce mode d’emploi, toujours à portée de clic.</figcaption>
+  </figure>
+  <p><strong>Si la fenêtre de choix du dossier ne fonctionne pas</strong>, vous pouvez donner le dossier par son lien. Ouvrez le dossier dans
+    Google Drive et copiez l’adresse affichée tout en haut de la fenêtre. Collez-la dans le champ <span class="num">2</span>, puis cliquez sur <strong class="btn">Utiliser ce dossier</strong>.</p>
+  <figure>
+    <img src="aide/2-dossier.png" alt="Panneau Google Drive une fois connecté : boutons Synchroniser et Changer de dossier, champ pour coller le lien du dossier.">
+    <figcaption><span class="num">1</span> Synchroniser (lire les nouveaux reçus) · <span class="num">2</span> coller le lien du dossier · <span class="num">3</span> choisir un autre dossier. Le dossier choisi est retenu pour la fois suivante.</figcaption>
+  </figure>
+
+  <h2><span class="n">3</span>Rattacher les comptes LinkedIn aux clients</h2>
+  <ul>
+    <li>Chaque compte LinkedIn trouvé dans les reçus apparaît dans la liste. Ceux qui ne sont rattachés à aucun client sont en orange, avec la mention <strong>À rattacher</strong>.</li>
+    <li>Tapez le <strong>nom du client</strong> en face de chaque compte <span class="num">1</span>. Il suffit de le faire une seule fois.</li>
+    <li>Cliquez ensuite sur <strong class="btn">Enregistrer le fichier de correspondance</strong> <span class="num">2</span>, et rangez ce fichier dans un dossier
+      commun. Vos collègues l’ouvrent avec <strong class="btn">Ouvrir un fichier de correspondance</strong> <span class="num">3</span> et n’ont rien à retaper.</li>
+    <li>Quand vous ajoutez un client, enregistrez à nouveau le fichier et remplacez l’ancien.</li>
+  </ul>
+  <figure class="mid">
+    <img src="aide/3-correspondance.png" alt="Tableau des comptes LinkedIn avec le nom du client à saisir, et les boutons pour enregistrer ou ouvrir le fichier de correspondance.">
+    <figcaption>Exemple fictif : le compte « Compte Démo Sport » reste à rattacher <span class="num">1</span>.</figcaption>
+  </figure>
+
+  <h2><span class="n">4</span>Chaque mois</h2>
+  <ol>
+    <li>Ouvrez l’outil et cliquez sur <strong class="btn">Se connecter et synchroniser</strong>, ou sur <strong class="btn">Synchroniser</strong> si vous êtes déjà connectée. Seuls les nouveaux reçus sont lus.</li>
+    <li>En haut de la page, choisissez un <strong>client</strong> <span class="num">1</span> et un <strong>mois</strong> <span class="num">2</span> : toute la page n’affiche plus que ce client et ce mois.
+      <strong class="btn">Effacer les filtres</strong> <span class="num">3</span> revient à l’ensemble.</li>
+  </ol>
+  <figure>
+    <img src="aide/4-filtres.png" alt="Haut de la page : listes Client et Mois, bouton Effacer les filtres et rappel du filtre actif.">
+  </figure>
+  <p class="tip">Bon à savoir : un reçu est rangé dans le <strong>mois où se termine la période facturée</strong> par LinkedIn. Pour le ranger plutôt au
+    jour du paiement, choisissez <strong class="btn">Date de transaction</strong> (dans les parties « Statistiques » ou « Relevés »).</p>
+
+  <h2><span class="n">5</span>Relevés et récapitulatifs</h2>
+  <h3>Relevé par client (partie 5 de l’outil)</h3>
+  <p><span class="num">1</span> Choisissez la période : un mois, un trimestre, une année ou des dates précises. <span class="num">2</span> Cochez les clients.
+    <span class="num">3</span> <strong class="btn">Télécharger les relevés PDF</strong> donne un fichier par client ; s’il y a plusieurs clients, ils sont réunis dans un
+    dossier compressé (« .zip ») : double-cliquez dessus pour l’ouvrir. <span class="num">4</span> La version Excel a un onglet par client.</p>
+  <p>Chaque relevé contient le nom du client et ses comptes LinkedIn, la période, la liste des reçus par date, un sous-total par mois et le total (HT, TVA, TTC).</p>
+  <figure class="mid">
+    <img src="aide/5-releves.png" alt="Partie Relevés par client : choix de la période, cases des clients, tableau par mois et boutons de téléchargement PDF et Excel.">
+  </figure>
+  <h3>Récapitulatifs (partie 6 de l’outil)</h3>
+  <ul>
+    <li><span class="num">1</span> <strong>Annuel</strong> : une ligne par client, une colonne par mois de l’année choisie <span class="num">2</span>.
+      <strong>Depuis le début</strong> : une colonne par année, avec le mois du premier et du dernier reçu de chaque client.</li>
+    <li><span class="num">3</span> Montants TTC, HT ou TVA · <span class="num">4</span> téléchargement en PDF ou en Excel.</li>
+  </ul>
+  <figure class="mid">
+    <img src="aide/6-recap-annuel.png" alt="Récapitulatif annuel : une ligne par client, une colonne par mois, totaux, et boutons de téléchargement.">
+  </figure>
+  <figure class="small">
+    <img src="aide/7-recap-debut.png" alt="Récapitulatif depuis le début : une colonne par année, mois du premier et du dernier reçu de chaque client.">
+    <figcaption>« Depuis le début » : <span class="num">1</span> premier reçu et <span class="num">2</span> dernier reçu de chaque client.</figcaption>
+  </figure>
+
+  <h2><span class="n">6</span>Comprendre les contrôles (partie 4 de l’outil)</h2>
+  <ul>
+    <li><span class="num">1</span> <strong>À vérifier</strong> : l’outil a un doute sur un reçu (illisible, incomplet, ou montants qui ne concordent pas). Ce reçu
+      <strong>n’est pas compté</strong> dans les totaux. Cliquez sur son nom pour l’ouvrir. S’il est correct, cliquez sur <strong class="btn">Compter quand même</strong>.
+      Sinon, téléchargez-le à nouveau depuis LinkedIn.</li>
+    <li><span class="num">2</span> <strong>Doublons écartés</strong> : le même reçu est présent deux fois. Il n’est compté qu’une fois : rien à faire.</li>
+    <li><span class="num">3</span> <strong>Pas des reçus LinkedIn</strong> : un autre document se trouve dans le dossier. Il est simplement mis de côté.</li>
+  </ul>
+  <figure class="mid">
+    <img src="aide/8-controles.png" alt="Partie Contrôles : un reçu à vérifier, un doublon écarté et un fichier qui n’est pas un reçu LinkedIn.">
+  </figure>
+
+  <h2><span class="n">7</span>Problèmes fréquents</h2>
+  <div class="pb">
+    <div>« Accès bloqué » dans la fenêtre Google</div>
+    <div>Votre compte Google n’est pas encore autorisé à utiliser l’outil. <strong>Contactez Tom</strong> en lui donnant l’adresse de votre compte Google ; une fois l’accès ouvert, recommencez.</div>
+    <div>La fenêtre de choix du dossier reste blanche</div>
+    <div>Appuyez sur la touche <strong>Échap</strong>, puis collez le lien du dossier (voir partie 2). Si Google propose « Autoriser les cookies », acceptez. L’outil affiche aussi une explication sous « Google Drive ».</div>
+    <div>« Session Google expirée » ou la connexion ne répond plus</div>
+    <div>La connexion dure environ une heure. Cliquez à nouveau sur <strong class="btn">Se connecter</strong>, puis sur <strong class="btn">Synchroniser</strong> : seuls les reçus manquants sont lus.</div>
+    <div>Un reçu n’est pas reconnu</div>
+    <div>Il apparaît dans « À vérifier » ou « Pas des reçus LinkedIn ». Vérifiez qu’il s’agit bien d’un reçu PDF téléchargé depuis LinkedIn (pas une photo ni une capture d’écran). Au besoin, téléchargez-le à nouveau depuis LinkedIn.</div>
+    <div>Un montant apparaît sous « Non rattaché »</div>
+    <div>Un compte LinkedIn n’a pas encore de client : rattachez-le (partie 3).</div>
+  </div>
+  <figure class="small">
+    <img src="aide/9-fenetre-blanche.png" alt="Message affiché quand la fenêtre de choix du dossier reste blanche, avec le champ pour coller le lien du dossier.">
+    <figcaption><span class="num">1</span> Lien du dossier à coller · <span class="num">2</span> explication affichée par l’outil.</figcaption>
+  </figure>
+
+  <h2><span class="n">8</span>Confidentialité</h2>
+  <ul class="keep">
+    <li>Les reçus sont lus <strong>directement sur votre ordinateur</strong>, dans la page de l’outil. Ils ne sont envoyés nulle part : ni à Tom, ni à un autre site.</li>
+    <li>L’outil peut seulement <strong>lire</strong> votre Google Drive : il ne peut rien modifier, déplacer ni supprimer.</li>
+    <li>Quand vous fermez la page, les reçus lus disparaissent de l’outil (ils restent bien sûr dans votre Drive). Seuls le dossier choisi et la correspondance comptes → clients sont gardés sur votre ordinateur.</li>
+    <li>Sur un ordinateur partagé, cliquez sur <strong class="btn">Se déconnecter</strong> à la fin.</li>
+  </ul>
+  <p class="tip">Les captures de ce mode d’emploi utilisent des données fictives : « Client Démo A, B, C », « Compte Démo… », montants inventés.</p>
+
+  <footer>Reçus LinkedIn Ads · mode d’emploi · version du 23/11/2026</footer>
+</main>
+</body>
+</html>

@@ -14,7 +14,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url))
-const PUBLIABLES = new Set(['index.html', 'README.md', '.gitignore', 'verifier-publication.mjs'])
+const PUBLIABLES = new Set(['index.html', 'README.md', '.gitignore', 'verifier-publication.mjs', 'mode-emploi.html', 'mode-emploi.pdf'])
+// Captures du mode d'emploi (données fictives uniquement), en PNG dans aide/.
+const CAPTURE = /^aide\/[a-z0-9-]+\.png$/
+const publiable = (f) => PUBLIABLES.has(f) || CAPTURE.test(f)
+// Fichiers binaires (images, PDF) : contenu non lisible comme du texte ; seuls leurs noms sont contrôlés.
+const binaire = (f) => /\.(png|pdf)$/i.test(f)
 const LISTE = path.join(ROOT, '.donnees-sensibles.txt')
 const REFERENCE = path.join(ROOT, 'tests', 'reference.json')
 
@@ -59,12 +64,12 @@ const indexFiles = git('ls-files', '-z').split('\0').filter(Boolean)
 const headFiles = hasHead ? git('ls-tree', '-r', '-z', '--name-only', 'HEAD').split('\0').filter(Boolean) : []
 const everFiles = hasHead ? git('log', '--all', '--name-only', '--pretty=format:', '-z').split(/\0|\n/).map((s) => s.trim()).filter(Boolean) : []
 for (const [label, files] of [['Index :', indexFiles], ['Dernier commit :', headFiles], ['Historique :', everFiles]]) {
-  for (const f of new Set(files)) if (!PUBLIABLES.has(f)) problems.push(`${label} fichier non prévu pour la publication : « ${f} ».`)
+  for (const f of new Set(files)) if (!publiable(f)) problems.push(`${label} fichier non prévu pour la publication : « ${f} ».`)
 }
 
 // 2. Contenu des fichiers publiables (index et dernier commit).
-for (const f of indexFiles) if (PUBLIABLES.has(f)) checkContent('Index :', f, git('show', `:${f}`))
-for (const f of headFiles) if (PUBLIABLES.has(f)) checkContent('Dernier commit :', f, git('show', `HEAD:${f}`))
+for (const f of indexFiles) if (publiable(f) && !binaire(f)) checkContent('Index :', f, git('show', `:${f}`))
+for (const f of headFiles) if (publiable(f) && !binaire(f)) checkContent('Dernier commit :', f, git('show', `HEAD:${f}`))
 
 if (problems.length) {
   console.error(`Publication bloquée : ${problems.length} problème(s).`)

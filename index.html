@@ -67,6 +67,7 @@ main { max-width: 1180px; margin: 0 auto; padding: 20px 24px 64px; display: grid
 .card > .hd .hint { color: var(--fg-muted); font-size: 12.5px; }
 .card > .bd { padding: 14px 18px 18px; }
 .step { width: 20px; height: 20px; border-radius: 6px; background: var(--accent-soft); color: var(--accent-text); font-size: 11.5px; font-weight: 600; display: grid; place-items: center; }
+a.btn { text-decoration: none; }
 button, .btn { font: inherit; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--fg); cursor: pointer; white-space: nowrap; }
 button:hover, .btn:hover { background: var(--subtle); }
 button.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
@@ -167,6 +168,7 @@ header.top { flex-wrap: wrap; }
     <label class="small muted row" style="gap:6px">Mois <select id="gMonth" aria-label="Mois"><option value="">Tous les mois</option></select></label>
     <button class="ghost hidden" id="gReset" title="Retirer les filtres">Effacer les filtres</button>
   </div>
+  <a class="btn" id="helpLink" href="mode-emploi.html" target="_blank" rel="noopener" title="Ouvrir le mode d’emploi (nouvel onglet)">Mode d’emploi</a>
   <div class="seg" role="group" aria-label="Thème">
     <button data-theme-btn="auto" aria-pressed="true">Auto</button>
     <button data-theme-btn="light" aria-pressed="false">Clair</button>
@@ -222,7 +224,7 @@ header.top { flex-wrap: wrap; }
         <summary>Mode d'emploi</summary>
         <ol>
           <li>Connectez-vous à Google Drive et choisissez le dossier des reçus (sous-dossiers compris) ; « Synchroniser » ne lit ensuite que les nouveaux fichiers. En secours, déposez les PDF. Un même reçu n'est compté qu'une fois.</li>
-          <li>Rattachez chaque compte publicitaire à un client (étape 2), puis exportez la correspondance : la prochaine fois, réimportez ce fichier JSON.</li>
+          <li>Rattachez chaque compte publicitaire à un client (étape 2), puis enregistrez le fichier de correspondance et partagez-le : la prochaine fois (ou sur un autre ordinateur), ouvrez-le pour tout retrouver.</li>
           <li>Choisissez la période et le mois de rattachement, consultez les totaux, le graphique et le détail par client.</li>
           <li>Traitez les reçus « À vérifier » (étape 4), puis exportez le ZIP rangé par client et le fichier Excel.</li>
         </ol>
@@ -232,11 +234,11 @@ header.top { flex-wrap: wrap; }
 
   <!-- 2. Correspondance -->
   <section class="card" id="secMap">
-    <div class="hd"><span class="step">2</span><h2>Comptes publicitaires → clients</h2><span class="hint">Rempli une fois, retrouvé à chaque utilisation (fichier JSON à exporter et réimporter ; aussi gardé dans ce navigateur).</span></div>
+    <div class="hd"><span class="step">2</span><h2>Comptes publicitaires → clients</h2><span class="hint">À remplir une fois : enregistrez ensuite le fichier de correspondance et partagez-le avec vos collègues (il est aussi gardé dans ce navigateur).</span></div>
     <div class="bd">
       <div class="row" style="margin-bottom:10px">
-        <button id="mapExport">Exporter la correspondance (JSON)</button>
-        <button id="mapImport">Importer une correspondance (JSON)</button>
+        <button id="mapExport">Enregistrer le fichier de correspondance</button>
+        <button id="mapImport">Ouvrir un fichier de correspondance</button>
         <input type="file" id="inMap" accept="application/json,.json" class="hidden">
         <span class="small muted" id="mapInfo"></span>
       </div>
@@ -1686,7 +1688,7 @@ const Noyau = (() => {
   }
 
   $('#mapExport').addEventListener('click', () => {
-    if (!Object.keys(state.mapping).length) return toast('Aucun compte à exporter pour l’instant.');
+    if (!Object.keys(state.mapping).length) return toast('Aucun compte à enregistrer pour l’instant.');
     const json = JSON.stringify(N.mappingToJson(state.mapping), null, 2);
     download(new Blob([json], { type: 'application/json' }), `Correspondance comptes LinkedIn ${new Date().toISOString().slice(0, 10)}.json`);
   });
@@ -1706,7 +1708,7 @@ const Noyau = (() => {
       }
       saveMapping();
       render();
-      toast(`Correspondance importée : ${Object.keys(incoming).length} comptes (${added} nouveaux, ${changed} modifiés).`);
+      toast(`Fichier de correspondance ouvert : ${Object.keys(incoming).length} comptes (${added} nouveaux, ${changed} modifiés).`);
     } catch (err) {
       toast(err.message || 'Fichier illisible.');
     }

@@ -4,6 +4,8 @@ Outil d'une seule page (`index.html`), publié sur GitHub Pages : **https://eyro
 Il lit les reçus (facturettes) LinkedIn Ads d'un dossier Google Drive, les range par client et produit statistiques,
 relevés, récapitulatifs et exports. Tout est traité **dans le navigateur** : aucun serveur, aucune base de données.
 
+**Mode d'emploi pour les utilisatrices** (français simple, captures annotées avec des données fictives) : [mode-emploi.html](mode-emploi.html), lien « Mode d'emploi » en haut de l'outil, et version PDF à imprimer ([mode-emploi.pdf](mode-emploi.pdf), 4 pages).
+
 ## Confidentialité
 
 - Les reçus sont lus depuis Google Drive **en lecture seule** (autorisation `drive.readonly`) : l'outil ne crée,
@@ -87,7 +89,8 @@ l'outil transmet au Google Picker.
 
 ## Publication
 
-Le dépôt public ne contient que `index.html`, `README.md`, `.gitignore` et `verifier-publication.mjs`.
+Le dépôt public ne contient que `index.html`, `README.md`, `.gitignore`, `verifier-publication.mjs`, le mode d'emploi
+(`mode-emploi.html`, `mode-emploi.pdf`) et ses captures `aide/*.png`, faites uniquement avec des reçus fictifs.
 
 - `node verifier-publication.mjs` contrôle, avant chaque publication, que seuls ces fichiers sont suivis par git,
   dans le dernier commit comme dans tout l'historique. Il vérifie aussi qu'aucun numéro de reçu, de transaction ou

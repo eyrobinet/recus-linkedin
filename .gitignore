@@ -6,6 +6,7 @@ tests/
 
 # Fichiers produits ou téléchargés.
 *.pdf
+!mode-emploi.pdf
 *.xlsx
 *.xls
 *.csv
