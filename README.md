@@ -69,6 +69,22 @@ que depuis l'adresse autorisée. Ils se renseignent en haut de `index.html` (`wi
      `http://localhost:8799/*` pour les essais) ;
    - restriction d'API : **Google Picker API** uniquement.
 
+La configuration contient aussi `googleAppId`, le numéro du projet Google Cloud (début de l'identifiant client), que
+l'outil transmet au Google Picker.
+
+## Dépannage
+
+- **La fenêtre de choix du dossier (Google Picker) reste blanche.** Appuyez sur Échap pour la fermer, puis collez le
+  lien du dossier dans « Ou collez le lien du dossier Drive » : l'outil vérifie le dossier par l'API Drive, puis le lit,
+  sans passer par la fenêtre de choix. Cause la plus fréquente : le navigateur bloque les cookies tiers de Google, dont
+  la fenêtre de choix a besoin. Si Google propose « Autoriser les cookies », acceptez. Sinon, dans Chrome, allez dans
+  Paramètres › Confidentialité et sécurité › Cookies tiers › « Sites autorisés à utiliser des cookies tiers », et
+  ajoutez `[*.]google.com`.
+- **La page signale un blocage par sa politique de sécurité.** Le message affiché sous le panneau Google Drive donne
+  la directive et le domaine concernés : transmettez-le pour corriger la page.
+- **La fenêtre de choix indique que la clé n'est pas valide.** Dans Google Cloud, vérifiez la restriction « Sites
+  Web » de la clé API. Si besoin, élargissez-la à `https://eyrobinet.github.io/*`.
+
 ## Publication
 
 Le dépôt public ne contient que `index.html`, `README.md`, `.gitignore` et `verifier-publication.mjs`.

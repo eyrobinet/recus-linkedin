@@ -5,15 +5,17 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <!-- Politique de sécurité : les reçus ne sont échangés qu'avec Google Drive (lecture seule) et traités dans ce navigateur.
      - Bibliothèques : quatre scripts de cdnjs, vérifiés par leur empreinte (integrity).
-     - Google : connexion (accounts.google.com), Google Picker (apis.google.com, docs.google.com), API Drive
-       (www.googleapis.com, seule adresse autorisée pour les requêtes : connect-src). Aucune autre destination. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://accounts.google.com https://apis.google.com https://www.gstatic.com blob:; worker-src blob: https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://accounts.google.com https://www.gstatic.com; img-src data: blob: https://*.googleusercontent.com https://ssl.gstatic.com https://www.gstatic.com https://drive-thirdparty.googleusercontent.com; font-src data: https://fonts.gstatic.com; connect-src https://www.googleapis.com https://accounts.google.com; frame-src https://accounts.google.com https://docs.google.com https://drive.google.com https://content.googleapis.com; form-action 'none'; base-uri 'none'">
+     - Google uniquement : connexion (accounts.google.com), Google Picker (apis.google.com, cadre docs.google.com et ses
+       pages de connexion ou d'autorisation des cookies sur *.google.com, ressources *.gstatic.com), API Drive
+       (www.googleapis.com). Aucune autre destination n'est autorisée. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' https://cdnjs.cloudflare.com https://accounts.google.com https://apis.google.com https://www.gstatic.com https://ssl.gstatic.com blob:; worker-src blob: https://cdnjs.cloudflare.com; style-src 'unsafe-inline' https://accounts.google.com https://apis.google.com https://www.gstatic.com https://ssl.gstatic.com https://fonts.googleapis.com; img-src data: blob: https://*.googleusercontent.com https://*.gstatic.com https://*.google.com https://*.googleapis.com; font-src data: https://fonts.gstatic.com; connect-src https://www.googleapis.com https://content.googleapis.com https://accounts.google.com https://apis.google.com https://docs.google.com; frame-src https://*.google.com https://content.googleapis.com https://*.googleusercontent.com; form-action 'none'; base-uri 'none'">
 <script>
 /* CONFIGURATION de la connexion Google Drive (lecture seule). Ces valeurs ne sont pas des secrets : elles sont publiques
    par nature et ne fonctionnent que depuis l'adresse autorisée dans Google Cloud (voir le mode d'emploi). */
 window.RECUS_CONFIG = {
   googleClientId: '285941533311-t079fooi9b0cv74f409e3qlbutignmhm.apps.googleusercontent.com', // identifiant client OAuth « Application Web » (….apps.googleusercontent.com)
   pickerApiKey: 'AIzaSyAavT3c5FbGNhFEUMOvU3BmshSTVEC8LhA', // clé API restreinte à l'API Google Picker et à l'adresse de la page
+  googleAppId: '285941533311', // numéro du projet Google Cloud (début de l'identifiant client), transmis au Picker
   pageUrl: 'https://eyrobinet.github.io/recus-linkedin/',
 };
 </script>
@@ -193,6 +195,12 @@ header.top { flex-wrap: wrap; }
           <button class="ghost hidden" id="driveLogout">Se déconnecter</button>
         </div>
         <div class="small" id="driveFolder" style="margin-top:6px"></div>
+        <div class="row hidden" id="driveLinkRow" style="margin-top:8px;gap:6px">
+          <span class="small muted">Ou collez le lien du dossier Drive :</span>
+          <input type="text" id="driveLink" placeholder="https://drive.google.com/drive/folders/…" aria-label="Lien du dossier Google Drive" style="flex:1;min-width:260px">
+          <button id="driveLinkUse">Utiliser ce dossier</button>
+        </div>
+        <div class="notice warn hidden" id="driveDiag" style="margin-top:8px"></div>
         <div class="progress hidden" id="driveProgress"><div></div></div>
         <div class="small muted" id="driveProgressText" style="margin-top:6px"></div>
       </div>
@@ -1320,6 +1328,13 @@ const Noyau = (() => {
   const DRIVE_SHORTCUT = 'application/vnd.google-apps.shortcut';
   const isDriveId = (id) => typeof id === 'string' && /^[A-Za-z0-9_-]{5,200}$/.test(id);
 
+  /** Identifiant d'un dossier Drive à partir de son lien (…/folders/ID, ?id=ID) ou de l'identifiant seul ; null sinon. */
+  function driveFolderIdFrom(text) {
+    const t = String(text ?? '').trim();
+    const m = t.match(/\/folders\/([A-Za-z0-9_-]+)/) || t.match(/[?&]id=([A-Za-z0-9_-]+)/) || t.match(/^([A-Za-z0-9_-]{10,200})$/);
+    return m && isDriveId(m[1]) ? m[1] : null;
+  }
+
   /**
    * PDF d'un dossier et de ses sous-dossiers. listChildren(folderId) → Promise<fichiers Drive (toutes les pages)>.
    * Raccourcis suivis (dossier ou PDF), dossiers visités une seule fois, même PDF compté une fois.
@@ -1364,7 +1379,7 @@ const Noyau = (() => {
 
   return { norm, amount, isoDate, lines, headerValue, parseReceipt, markDuplicates, canForce, statusOf, monthOf, clientOf, UNMAPPED, safeName, fileNameFor, buildReport, monthRange, monthLabel, zipPlan, buildWorkbook, mappingToJson, mappingFromJson,
     attribDate, periodRange, buildStatements, statementPdf, statementWorkbook, sheetNames, pdfText, money, frDate, MODE_LABEL,
-    filterEntries, filterOptions, summaryYears, annualSummary, lifetimeSummary, summaryColumns, summaryWorkbook, summaryPdf, listDrivePdfs, planSync, isDriveId };
+    filterEntries, filterOptions, summaryYears, annualSummary, lifetimeSummary, summaryColumns, summaryWorkbook, summaryPdf, listDrivePdfs, planSync, isDriveId, driveFolderIdFrom };
 })();
 /* NOYAU-FIN */
 </script>
@@ -2243,30 +2258,57 @@ const Noyau = (() => {
     }
   }
 
+  /* Diagnostic affiché dans le panneau Drive (la console du navigateur n'est pas nécessaire). */
+  const blocked = new Set();
+  function showDiag(html) { $('#driveDiag').innerHTML = `<span class="ic">⚠</span><div>${html}</div>`; $('#driveDiag').classList.remove('hidden'); }
+  const hideDiag = () => $('#driveDiag').classList.add('hidden');
+  document.addEventListener('securitypolicyviolation', (e) => {
+    let where = e.blockedURI || 'inline';
+    try { where = new URL(e.blockedURI).origin; } catch { /* valeur non URL : « inline », « eval »… */ }
+    blocked.add(`${e.effectiveDirective || e.violatedDirective} ${where}`);
+    showDiag(`La politique de sécurité de la page a bloqué : <span class="mono">${esc([...blocked].join(' · '))}</span>. Transmettez ce message pour corriger la page ; en attendant, collez le lien du dossier ci-dessus.`);
+  });
+  let picker = null;
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && picker) { picker.setVisible(false); picker = null; } });
+
   function openPicker() {
     const P = google.picker;
     const folders = () => new P.DocsView(P.ViewId.FOLDERS).setIncludeFolders(true).setSelectFolderEnabled(true).setMimeTypes('application/vnd.google-apps.folder');
     const label = (v, t) => (typeof v.setLabel === 'function' ? v.setLabel(t) : v);
-    new P.PickerBuilder()
+    const built = new P.PickerBuilder()
       .setTitle('Choisissez le dossier des reçus LinkedIn')
       .setLocale('fr')
       .setOAuthToken(drive.token)
       .setDeveloperKey(CFG.pickerApiKey)
       .setOrigin(location.origin)
+      .setAppId(CFG.googleAppId || '')
       .enableFeature(P.Feature.SUPPORT_DRIVES)
       .addView(label(folders().setOwnedByMe(true), 'Mon Drive'))
       .addView(label(folders().setOwnedByMe(false), 'Partagés avec moi'))
       .addView(label(folders().setEnableDrives(true), 'Drives partagés'))
       .setCallback((data) => {
-        if (data[P.Response.ACTION] !== P.Action.PICKED) return;
+        const action = data[P.Response.ACTION];
+        if (action === P.Action.LOADED) { loaded = true; return; }
+        if (action !== P.Action.PICKED) { picker = null; return; }
+        picker = null;
+        hideDiag();
         const d = data[P.Response.DOCUMENTS][0];
         if (!N.isDriveId(d[P.Document.ID])) return toast('Dossier Google Drive invalide.');
         saveFolder({ id: d[P.Document.ID], name: d[P.Document.NAME] || 'Dossier' });
         renderDrive();
         syncDrive();
       })
-      .build()
-      .setVisible(true);
+      .build();
+    let loaded = false;
+    picker = built;
+    built.setVisible(true);
+    // Fenêtre restée vide : explication et solution de secours (lien du dossier).
+    setTimeout(() => {
+      if (loaded || picker !== built) return;
+      showDiag('La fenêtre de choix du dossier ne s’affiche pas ? Appuyez sur Échap pour la fermer, puis collez le lien du dossier Drive ci-dessus. '
+        + 'Cause la plus fréquente : le navigateur bloque les cookies tiers de Google, dont la fenêtre de choix a besoin. Si Google propose « Autoriser les cookies », acceptez ; '
+        + 'sinon, autorisez les cookies tiers pour <span class="mono">[*.]google.com</span> dans les paramètres du navigateur (Confidentialité › Cookies tiers › Sites autorisés).');
+    }, 20000);
   }
 
   function renderDrive() {
@@ -2286,6 +2328,8 @@ const Noyau = (() => {
     show('#driveSync', on && !!drive.folder);
     show('#driveChange', on && !!drive.folder);
     show('#driveLogout', on);
+    show('#driveLinkRow', on);
+    $('#driveLinkUse').disabled = state.busy;
     $('#driveSync').disabled = $('#driveChange').disabled = $('#drivePick').disabled = state.busy;
     $('#driveFolder').innerHTML = drive.folder
       ? `Dossier choisi : <strong>${esc(drive.folder.name)}</strong> <span class="muted">(et ses sous-dossiers)${drive.folder.syncedAt ? ` · dernière synchronisation le ${esc(new Date(drive.folder.syncedAt).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }))}` : ''}</span>`
@@ -2299,6 +2343,26 @@ const Noyau = (() => {
   $('#drivePick').addEventListener('click', () => getToken().then(openPicker, (err) => toast(err.message)));
   $('#driveChange').addEventListener('click', () => getToken().then(openPicker, (err) => toast(err.message)));
   $('#driveSync').addEventListener('click', () => syncDrive());
+  /** Dossier choisi par son lien (sans le Picker) : vérifié par l'API Drive (lecture seule), puis synchronisé. */
+  $('#driveLinkUse').addEventListener('click', async () => {
+    const id = N.driveFolderIdFrom($('#driveLink').value);
+    if (!id) return toast('Lien non reconnu : copiez l’adresse du dossier ouvert dans Google Drive (…/drive/folders/…).');
+    try {
+      await getToken();
+      const f = await driveGet(`${DRIVE_API}/${encodeURIComponent(id)}?${new URLSearchParams({ fields: 'id, name, mimeType, shortcutDetails', supportsAllDrives: 'true' })}`);
+      let folder = { id: f.id, name: f.name || 'Dossier' };
+      if (f.mimeType === 'application/vnd.google-apps.shortcut' && f.shortcutDetails?.targetMimeType === 'application/vnd.google-apps.folder') folder = { id: f.shortcutDetails.targetId, name: f.name || 'Dossier' };
+      else if (f.mimeType !== 'application/vnd.google-apps.folder') return toast('Ce lien ne désigne pas un dossier Google Drive.');
+      if (!N.isDriveId(folder.id)) return toast('Dossier Google Drive invalide.');
+      $('#driveLink').value = '';
+      hideDiag();
+      saveFolder(folder);
+      renderDrive();
+      syncDrive();
+    } catch (err) {
+      toast(/not found|404/i.test(err.message) ? 'Dossier introuvable, ou pas partagé avec ce compte Google.' : err.message);
+    }
+  });
   $('#driveLogout').addEventListener('click', () => {
     const t = drive.token;
     drive.token = null;
